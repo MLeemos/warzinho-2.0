@@ -38,6 +38,11 @@ public sealed class GameHub(RoomStore rooms) : Hub
             room.ActiveCombat = null;
         }
 
+        if (action.Type == "select-territory" && room.ActiveTacticalAction?.TargetId is not null)
+        {
+            room.ActiveTacticalAction = null;
+        }
+
         await Clients.Group(room.Code).SendAsync("GameActionReceived", Context.ConnectionId, action);
     }
 
@@ -139,7 +144,7 @@ public sealed class GameHub(RoomStore rooms) : Hub
         return rooms.Find(code) ?? throw new HubException("Sala não encontrada.");
     }
 
-    private static void ValidateAction(RoomState room, RoomPlayer player, GameAction action)
+    private void ValidateAction(RoomState room, RoomPlayer player, GameAction action)
     {
         var allowedActions = new[]
         {
@@ -183,6 +188,94 @@ public sealed class GameHub(RoomStore rooms) : Hub
         if (action.Type == "resolve-combat")
         {
             ValidateCombatResult(room, player, gameState, action.Payload);
+        }
+
+        if (action.Type == "use-card")
+        {
+            ValidateTacticalCard(room, player, gameState, action.Payload);
+        }
+
+        if (action.Type == "select-territory")
+        {
+            ValidateTacticalSelection(room, player, gameState, action.Payload);
+        }
+    }
+
+    private static void ValidateTacticalCard(RoomState room, RoomPlayer player, JsonElement gameState, JsonElement payload)
+    {
+        var cardId = payload.GetPropertyOrNull("cardId");
+        var tacticalCards = GetActivePlayer(gameState).GetPropertyOrDefault("tacticalCards", Array.Empty<string>());
+        if (string.IsNullOrWhiteSpace(cardId) || !tacticalCards.Contains(cardId, StringComparer.Ordinal))
+        {
+            throw new HubException("Esta carta tática não está disponível para o jogador.");
+        }
+
+        var supportedCards = new[]
+        {
+            "tac_air_strike",
+            "tac_fortify",
+            "tac_spy",
+            "tac_emergency_recruits",
+            "tac_blitzkrieg",
+            "tac_peace"
+        };
+        if (!supportedCards.Contains(cardId, StringComparer.Ordinal))
+        {
+            throw new HubException("Carta tática desconhecida.");
+        }
+
+        room.ActiveTacticalAction = cardId is "tac_air_strike" or "tac_fortify"
+            ? new TacticalSession
+            {
+                PlayerId = player.PlayerId,
+                CardId = cardId
+            }
+            : null;
+    }
+
+    private static void ValidateTacticalSelection(RoomState room, RoomPlayer player, JsonElement gameState, JsonElement payload)
+    {
+        var session = room.ActiveTacticalAction;
+        if (session is null || session.PlayerId != player.PlayerId) return;
+
+        var territoryId = payload.GetPropertyOrNull("territoryId");
+        if (string.IsNullOrWhiteSpace(territoryId)
+            || !gameState.TryGetProperty("territories", out var territories)
+            || !territories.TryGetProperty(territoryId, out var territory))
+        {
+            throw new HubException("Território inválido para a carta tática.");
+        }
+
+        var ownerId = territory.GetPropertyOrNull("ownerId");
+        var armies = territory.GetPropertyOrDefault("armies", 0);
+
+        if (session.CardId == "tac_air_strike")
+        {
+            if (session.SourceId is null)
+            {
+                if (ownerId != player.PlayerId || armies < 20)
+                {
+                    throw new HubException("O Ataque Aéreo exige um território próprio com pelo menos 20 tropas.");
+                }
+
+                session.SourceId = territoryId;
+            }
+            else if (ownerId == player.PlayerId)
+            {
+                throw new HubException("O alvo do Ataque Aéreo precisa ser inimigo.");
+            }
+            else
+            {
+                session.TargetId = territoryId;
+            }
+        }
+        else if (session.CardId == "tac_fortify" && ownerId != player.PlayerId)
+        {
+            throw new HubException("A Fortaleza só pode ser construída em território próprio.");
+        }
+        else if (session.CardId == "tac_fortify")
+        {
+            session.TargetId = territoryId;
         }
     }
 
@@ -273,6 +366,11 @@ public sealed class GameHub(RoomStore rooms) : Hub
 
     private static string? GetActivePlayerId(JsonElement gameState)
     {
+        return GetActivePlayer(gameState).GetPropertyOrNull("id");
+    }
+
+    private static JsonElement GetActivePlayer(JsonElement gameState)
+    {
         if (!gameState.TryGetProperty("activePlayerIndex", out var activeIndexProperty)
             || !activeIndexProperty.TryGetInt32(out var activePlayerIndex)
             || !gameState.TryGetProperty("players", out var playersProperty)
@@ -281,9 +379,13 @@ public sealed class GameHub(RoomStore rooms) : Hub
             throw new HubException("O estado da partida está incompleto.");
         }
 
-        return playersProperty.EnumerateArray()
-            .ElementAtOrDefault(activePlayerIndex)
-            .GetPropertyOrNull("id");
+        var activePlayer = playersProperty.EnumerateArray().ElementAtOrDefault(activePlayerIndex);
+        if (activePlayer.ValueKind != JsonValueKind.Object)
+        {
+            throw new HubException("O jogador ativo não foi encontrado.");
+        }
+
+        return activePlayer;
     }
 
     private static void ValidateCombatTarget(
@@ -383,5 +485,20 @@ internal static class JsonElementExtensions
             && property.ValueKind is JsonValueKind.True or JsonValueKind.False
             ? property.GetBoolean()
             : fallback;
+    }
+
+    public static string[] GetPropertyOrDefault(this JsonElement element, string propertyName, string[] fallback)
+    {
+        if (element.ValueKind != JsonValueKind.Object
+            || !element.TryGetProperty(propertyName, out var property)
+            || property.ValueKind != JsonValueKind.Array)
+        {
+            return fallback;
+        }
+
+        return property.EnumerateArray()
+            .Where(item => item.ValueKind == JsonValueKind.String)
+            .Select(item => item.GetString()!)
+            .ToArray();
     }
 }

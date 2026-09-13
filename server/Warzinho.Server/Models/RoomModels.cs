@@ -9,6 +9,7 @@ public sealed class RoomState
     public Dictionary<string, RoomPlayer> Players { get; } = new();
     public JsonElement? GameState { get; set; }
     public CombatSession? ActiveCombat { get; set; }
+    public TacticalSession? ActiveTacticalAction { get; set; }
 
     public RoomSnapshot Snapshot() => new(
         Code,
@@ -40,3 +41,11 @@ public sealed record CombatSession(
     int AttackerRemaining,
     int DefenderRemaining,
     bool Conquered);
+
+public sealed class TacticalSession
+{
+    public string PlayerId { get; init; } = string.Empty;
+    public string CardId { get; init; } = string.Empty;
+    public string? SourceId { get; set; }
+    public string? TargetId { get; set; }
+}
