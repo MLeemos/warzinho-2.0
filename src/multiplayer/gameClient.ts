@@ -39,6 +39,10 @@ export class GameClient {
     return this.connection.invoke<OnlineRoomSnapshot>('JoinRoom', roomCode, playerName);
   }
 
+  getConnectionId(): string | null {
+    return this.connection.connectionId;
+  }
+
   onRoomUpdated(handler: (room: OnlineRoomSnapshot) => void): void {
     this.connection.on('RoomUpdated', handler);
   }

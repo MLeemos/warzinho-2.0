@@ -28,6 +28,19 @@ import { GameSetup } from './components/Setup/GameSetup';
 import { Plane } from 'lucide-react';
 import { GameClient, OnlineRoomSnapshot } from './multiplayer/gameClient';
 
+interface OnlineGameState {
+  players: Player[];
+  activePlayerIndex: number;
+  currentRound: number;
+  currentPhase: TurnPhase;
+  territories: Record<string, TerritoryState>;
+  reserveArmies: number;
+  cardTradeCount: number;
+  conqueredThisTurn: boolean;
+  gameLogs: GameLogEntry[];
+  activeGlobalEvent: GlobalEvent | null;
+}
+
 export default function App() {
   // Application Stage
   const [inGame, setInGame] = useState(false);
@@ -78,17 +91,74 @@ export default function App() {
 
   const activePlayer = players[activePlayerIndex] || null;
 
+  const applyOnlineGameState = useCallback((rawState: unknown) => {
+    if (!rawState || typeof rawState !== 'object') return;
+    const state = rawState as Partial<OnlineGameState>;
+    if (!state.players || !state.territories || !state.currentPhase) return;
+
+    setPlayers(state.players);
+    setActivePlayerIndex(state.activePlayerIndex ?? 0);
+    setCurrentRound(state.currentRound ?? 1);
+    setCurrentPhase(state.currentPhase);
+    setTerritories(state.territories);
+    setReserveArmies(state.reserveArmies ?? 0);
+    setCardTradeCount(state.cardTradeCount ?? 0);
+    setConqueredThisTurn(state.conqueredThisTurn ?? false);
+    setGameLogs(state.gameLogs ?? []);
+    setActiveGlobalEvent(state.activeGlobalEvent ?? null);
+    setInGame(true);
+  }, []);
+
   const handleJoinOnlineRoom = async (roomCode: string, playerName: string) => {
     try {
       const client = onlineClient || new GameClient();
       client.onRoomUpdated(setOnlineRoom);
-      await client.joinRoom(roomCode, playerName);
+      client.onGameStateUpdated(applyOnlineGameState);
+      const room = await client.joinRoom(roomCode, playerName);
       setOnlineClient(client);
-      setOnlineStatus('Conectado à sala. A sincronização da partida será ativada na próxima etapa.');
+      setOnlineRoom(room);
+      if (room.gameState) applyOnlineGameState(room.gameState);
+      setOnlineStatus('Conectado à sala. O estado da partida será compartilhado pelo anfitrião.');
     } catch (error) {
       setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível conectar à sala.');
     }
   };
+
+  useEffect(() => {
+    if (!inGame || !onlineClient || !onlineRoom) return;
+    if (onlineClient.getConnectionId() !== onlineRoom.hostConnectionId) return;
+
+    const state: OnlineGameState = {
+      players,
+      activePlayerIndex,
+      currentRound,
+      currentPhase,
+      territories,
+      reserveArmies,
+      cardTradeCount,
+      conqueredThisTurn,
+      gameLogs,
+      activeGlobalEvent
+    };
+
+    onlineClient.publishGameState(onlineRoom.code, state).catch(error => {
+      setOnlineStatus(error instanceof Error ? error.message : 'Falha ao sincronizar a partida.');
+    });
+  }, [
+    inGame,
+    onlineClient,
+    onlineRoom,
+    players,
+    activePlayerIndex,
+    currentRound,
+    currentPhase,
+    territories,
+    reserveArmies,
+    cardTradeCount,
+    conqueredThisTurn,
+    gameLogs,
+    activeGlobalEvent
+  ]);
 
   // Audio mute toggle
   const toggleAudio = () => {
