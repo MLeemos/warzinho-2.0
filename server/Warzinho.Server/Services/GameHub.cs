@@ -33,6 +33,11 @@ public sealed class GameHub(RoomStore rooms) : Hub
             ?? throw new HubException("Você não está conectado a esta sala.");
 
         ValidateAction(room, player, action);
+        if (action.Type == "resolve-combat")
+        {
+            room.ActiveCombat = null;
+        }
+
         await Clients.Group(room.Code).SendAsync("GameActionReceived", Context.ConnectionId, action);
     }
 
@@ -98,6 +103,14 @@ public sealed class GameHub(RoomStore rooms) : Hub
                 }
             }
         }
+
+        room.ActiveCombat = new CombatSession(
+            player.PlayerId,
+            sourceId,
+            targetId,
+            attackerArmies,
+            defenderArmies,
+            defenderArmies == 0);
 
         return new CombatRollResult(
             attackerDice,
@@ -169,11 +182,11 @@ public sealed class GameHub(RoomStore rooms) : Hub
 
         if (action.Type == "resolve-combat")
         {
-            ValidateCombatResult(player, gameState, action.Payload);
+            ValidateCombatResult(room, player, gameState, action.Payload);
         }
     }
 
-    private static void ValidateCombatResult(RoomPlayer player, JsonElement gameState, JsonElement payload)
+    private static void ValidateCombatResult(RoomState room, RoomPlayer player, JsonElement gameState, JsonElement payload)
     {
         var sourceId = payload.GetPropertyOrNull("sourceId");
         var targetId = payload.GetPropertyOrNull("targetId");
@@ -197,6 +210,25 @@ public sealed class GameHub(RoomStore rooms) : Hub
         var defenderRemaining = payload.GetPropertyOrDefault("defenderRemaining", -1);
         var movedArmies = payload.GetPropertyOrDefault("movedArmies", 0);
         var conquered = payload.GetPropertyOrDefault("conquered", false);
+
+        var combat = room.ActiveCombat;
+        if (combat is null
+            || !string.Equals(combat.PlayerId, player.PlayerId, StringComparison.Ordinal)
+            || !string.Equals(combat.SourceId, sourceId, StringComparison.Ordinal)
+            || !string.Equals(combat.TargetId, targetId, StringComparison.Ordinal))
+        {
+            throw new HubException("A sessão de combate não está ativa ou não corresponde a este jogador.");
+        }
+
+        if (conquered != combat.Conquered || defenderRemaining != combat.DefenderRemaining)
+        {
+            throw new HubException("O resultado não corresponde à rolagem realizada pelo servidor.");
+        }
+
+        if (attackerRemaining + movedArmies != combat.AttackerRemaining)
+        {
+            throw new HubException("As tropas sobreviventes não correspondem ao resultado do combate.");
+        }
 
         if (!string.Equals(sourceOwner, player.PlayerId, StringComparison.Ordinal)
             || string.Equals(targetOwner, player.PlayerId, StringComparison.Ordinal))
@@ -224,7 +256,7 @@ public sealed class GameHub(RoomStore rooms) : Hub
             throw new HubException("Não é possível avançar tropas sem conquistar o território.");
         }
 
-        if (conquered && (movedArmies < 1 || movedArmies >= sourceArmies))
+        if (conquered && (movedArmies < 1 || movedArmies >= combat.AttackerRemaining))
         {
             throw new HubException("A conquista precisa deixar tropas na origem e avançar sobreviventes.");
         }

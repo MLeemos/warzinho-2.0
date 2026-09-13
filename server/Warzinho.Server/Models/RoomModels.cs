@@ -8,6 +8,7 @@ public sealed class RoomState
     public string HostConnectionId { get; set; } = string.Empty;
     public Dictionary<string, RoomPlayer> Players { get; } = new();
     public JsonElement? GameState { get; set; }
+    public CombatSession? ActiveCombat { get; set; }
 
     public RoomSnapshot Snapshot() => new(
         Code,
@@ -31,3 +32,11 @@ public sealed record RoomSnapshot(
 public sealed record GameAction(
     string Type,
     JsonElement Payload);
+
+public sealed record CombatSession(
+    string PlayerId,
+    string SourceId,
+    string TargetId,
+    int AttackerRemaining,
+    int DefenderRemaining,
+    bool Conquered);
