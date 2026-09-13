@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { CONTINENTS, TERRITORIES, SEA_ROUTES } from './data/warMapData';
 import { CLASSIC_OBJECTIVES, checkObjectiveProgress } from './data/objectivesData';
-import { DEFAULT_MECHANICS, GLOBAL_EVENTS, TacticalCard } from './data/mechanicsData';
+import { DEFAULT_MECHANICS, GLOBAL_EVENTS, TACTICAL_CARDS, TacticalCard } from './data/mechanicsData';
 import { 
   ActiveMechanics, 
   GlobalEvent, 
@@ -679,17 +679,22 @@ export default function App() {
 
     const removeHandler = onlineClient.onGameAction((_, rawAction) => {
       if (!rawAction || typeof rawAction !== 'object') return;
-      const action = rawAction as { type?: string; payload?: { territoryId?: string } };
+      const action = rawAction as { type?: string; payload?: { territoryId?: string; cardId?: string } };
 
       if (action.type === 'select-territory' && action.payload?.territoryId) {
         handleSelectTerritory(action.payload.territoryId, true);
       } else if (action.type === 'next-phase') {
         handleNextPhase(true);
+      } else if (action.type === 'use-card' && action.payload?.cardId) {
+        const card = TACTICAL_CARDS.find(candidate => candidate.id === action.payload?.cardId);
+        if (card && activePlayer?.tacticalCards.includes(card.id)) {
+          handleUseTacticalAction(card, true);
+        }
       }
     });
 
     return removeHandler;
-  }, [onlineClient, onlineRoom, isOnlineHost, handleNextPhase]);
+  }, [onlineClient, onlineRoom, isOnlineHost, activePlayer, handleNextPhase]);
 
   // AI Turn Logic Automator
   useEffect(() => {
@@ -763,8 +768,17 @@ export default function App() {
   }, [inGame, activePlayer, currentPhase, reserveArmies, territories, winnerPlayer, handleNextPhase]);
 
   // Tactical Actions handler
-  const handleUseTacticalAction = (card: TacticalCard) => {
-    if (!activePlayer) return;
+  const handleUseTacticalAction = (card: TacticalCard, fromServer = false) => {
+    if (!activePlayer || (!fromServer && !isOnlineTurn)) return;
+    if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
+      onlineClient.sendGameAction(onlineRoom.code, {
+        type: 'use-card',
+        payload: { cardId: card.id }
+      }).catch(error => {
+        setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível usar a carta.');
+      });
+      return;
+    }
 
     setPlayers(prev => prev.map(player => (
       player.id === activePlayer.id
