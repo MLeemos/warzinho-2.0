@@ -102,6 +102,20 @@ export const GameSetup: React.FC<GameSetupProps> = ({
     }
   };
 
+  const handleCreateRoom = async () => {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const generatedCode = Array.from({ length: 6 }, () =>
+      alphabet[Math.floor(Math.random() * alphabet.length)]
+    ).join('');
+    setRoomCode(generatedCode);
+    setIsJoiningRoom(true);
+    try {
+      await onJoinOnlineRoom(generatedCode, onlineName);
+    } finally {
+      setIsJoiningRoom(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 relative overflow-x-hidden">
       {/* Background World Glow */}
@@ -162,13 +176,22 @@ export const GameSetup: React.FC<GameSetupProps> = ({
               maxLength={12}
               className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs uppercase text-slate-100 outline-none focus:border-cyan-400"
             />
-            <button
-              onClick={handleJoinRoom}
-              disabled={isJoiningRoom || roomCode.trim().length < 4 || !onlineName.trim()}
-              className="rounded-lg bg-cyan-500 px-4 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {isJoiningRoom ? 'Conectando...' : 'Entrar'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreateRoom}
+                disabled={isJoiningRoom || !onlineName.trim()}
+                className="rounded-lg border border-cyan-400/60 px-3 py-2 text-xs font-black text-cyan-200 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Criar sala
+              </button>
+              <button
+                onClick={handleJoinRoom}
+                disabled={isJoiningRoom || roomCode.trim().length < 4 || !onlineName.trim()}
+                className="rounded-lg bg-cyan-500 px-4 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {isJoiningRoom ? 'Conectando...' : 'Entrar'}
+              </button>
+            </div>
           </div>
           {onlineStatus && <p className="mt-3 text-xs text-amber-300">{onlineStatus}</p>}
           {onlineRoom && (

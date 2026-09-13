@@ -224,7 +224,32 @@ O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a qua
 
 ## Atualizações recentes
 
-As novidades devem ser adicionadas aqui, sempre com a mais nova primeiro. A atualização atual é o **Ataque Aéreo Estratégico**, documentado na seção de cartas táticas e implementado em `src/App.tsx`, `src/data/mechanicsData.ts` e `src/components/Modals/TacticalCardsModal.tsx`.
+- **Acesso externo ao multiplayer:** o cliente aceita `VITE_GAME_SERVER_URL`, permitindo apontar o SignalR para um túnel público ou servidor hospedado; a tela inicial também cria códigos de sala automaticamente.
+- **Ataque Aéreo Estratégico**, documentado na seção de cartas táticas e implementado em `src/App.tsx`, `src/data/mechanicsData.ts` e `src/components/Modals/TacticalCardsModal.tsx`.
+
+### Jogar com amigos fora da rede local
+
+Para um teste rápido, publique as duas portas com túneis HTTPS, mantendo o servidor C# e o Vite em execução:
+
+```bash
+# Terminal 1
+ASPNETCORE_URLS=http://0.0.0.0:5000 dotnet run --project server/Warzinho.Server
+
+# Terminal 2
+npm run dev
+
+# Terminais 3 e 4, usando ngrok ou Cloudflare Tunnel
+ngrok http 5000
+ngrok http 3000
+```
+
+Use a URL HTTPS do túnel da porta `5000` em `.env.local`:
+
+```env
+VITE_GAME_SERVER_URL="https://seu-tunel-do-servidor.example"
+```
+
+Reinicie `npm run dev` depois de alterar a variável e envie aos amigos a URL HTTPS do túnel da porta `3000`. Todos entram pelo mesmo endereço e usam o mesmo código de sala. Para produção, hospede o frontend e o servidor SignalR em URLs HTTPS permanentes; as salas atuais ficam em memória e são perdidas quando o servidor reinicia.
 
 ## Fluxo de sincronização
 
