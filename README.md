@@ -101,6 +101,28 @@ Warzinho 2.0 é um jogo digital de estratégia e conquista territorial inspirado
 - Sons procedurais para dados, combate, conquista, tropas, cartas, cliques e vitória.
 - Tela de vitória com objetivo cumprido, estatísticas e confetes.
 
+## Multiplayer online e servidor C#
+
+O projeto agora possui a base de um servidor multiplayer em C# com ASP.NET Core 8 e SignalR. O React continua sendo o cliente para navegador, celular e PC; o servidor será responsável por salas, jogadores conectados, ações e estado compartilhado da partida.
+
+### Servidor
+
+- Projeto: `server/Warzinho.Server/Warzinho.Server.csproj`
+- Health check: `GET /health`
+- Hub em tempo real: `/hubs/game`
+- Entrada em salas por código.
+- Lista de jogadores conectados.
+- Transferência de ações para todos os participantes.
+- Publicação do estado da partida pelo anfitrião.
+
+Para executar o servidor localmente:
+
+```powershell
+& "C:\Program Files\dotnet\dotnet.exe" run --project server/Warzinho.Server
+```
+
+O servidor C# compilado é a primeira etapa da migração para partidas entre pessoas em casas diferentes. A próxima etapa é conectar o `src/App.tsx` ao hub e mover a autoridade dos turnos, combates e validações para o servidor.
+
 ## Estrutura do código
 
 | Caminho | Responsabilidade |
@@ -126,6 +148,10 @@ Warzinho 2.0 é um jogo digital de estratégia e conquista territorial inspirado
 | `src/components/Objective/ObjectiveModal.tsx` | Objetivo secreto e progresso atual. |
 | `src/sound/audio.ts` | Motor de áudio procedural com Web Audio API. |
 | `src/index.css` | Estilos globais e utilitários visuais. |
+| `server/Warzinho.Server/Program.cs` | Inicialização da API ASP.NET Core e do SignalR. |
+| `server/Warzinho.Server/Services/GameHub.cs` | Operações em tempo real das salas multiplayer. |
+| `server/Warzinho.Server/Services/RoomStore.cs` | Armazenamento das salas ativas em memória. |
+| `server/Warzinho.Server/Models/RoomModels.cs` | Modelos de salas, jogadores e ações. |
 
 ## Tecnologias
 
