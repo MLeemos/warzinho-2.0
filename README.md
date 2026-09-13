@@ -119,6 +119,7 @@ O projeto agora possui a base de um servidor multiplayer em C# com ASP.NET Core 
 - Recebimento de jogadores e estado completo pelo cliente React.
 - Sincronização de territórios, jogadores, rodada, fase, reserva, cartas, eventos e diário.
 - Bloqueio de ações locais quando não é o turno do jogador conectado.
+- Validação no hub para aceitar apenas ações conhecidas e do jogador ativo.
 
 Para executar o servidor localmente:
 
@@ -211,7 +212,7 @@ Configure `GEMINI_API_KEY` em `.env.local` usando [.env.example](.env.example) c
 
 3. Abra `http://localhost:3000` em duas janelas ou dispositivos da mesma rede e use o mesmo código de sala.
 
-O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes, recebe o estado completo publicado pelo anfitrião e bloqueia ações fora do turno. A próxima etapa é validar no servidor as ações de turno, combate, cartas e conquista, impedindo alterações inválidas mesmo que alguém tente manipular o cliente.
+O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes, recebe o estado completo publicado pelo anfitrião e bloqueia ações fora do turno. O servidor também rejeita ações desconhecidas, jogadores que não pertencem à sala e ações enviadas fora do turno. A próxima etapa é aplicar as regras detalhadas de território, dados, cartas e conquista dentro do servidor.
 
 ## Atualizações recentes
 

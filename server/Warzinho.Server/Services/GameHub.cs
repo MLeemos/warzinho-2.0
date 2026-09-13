@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
 using Warzinho.Server.Models;
 
@@ -28,6 +29,10 @@ public sealed class GameHub(RoomStore rooms) : Hub
     public async Task SendGameAction(string roomCode, GameAction action)
     {
         var room = RequireRoom(roomCode);
+        var player = room.Players.GetValueOrDefault(Context.ConnectionId)
+            ?? throw new HubException("Você não está conectado a esta sala.");
+
+        ValidateAction(room, player, action);
         await Clients.Group(room.Code).SendAsync("GameActionReceived", Context.ConnectionId, action);
     }
 
@@ -60,6 +65,48 @@ public sealed class GameHub(RoomStore rooms) : Hub
         return rooms.Find(code) ?? throw new HubException("Sala não encontrada.");
     }
 
+    private static void ValidateAction(RoomState room, RoomPlayer player, GameAction action)
+    {
+        var allowedActions = new[]
+        {
+            "select-territory",
+            "place-army",
+            "attack",
+            "resolve-combat",
+            "maneuver",
+            "use-card",
+            "next-phase"
+        };
+
+        if (!allowedActions.Contains(action.Type, StringComparer.Ordinal))
+        {
+            throw new HubException("Ação de jogo desconhecida.");
+        }
+
+        if (!room.GameState.HasValue || room.GameState.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            throw new HubException("A partida ainda não foi iniciada.");
+        }
+
+        var gameState = room.GameState.Value;
+        if (!gameState.TryGetProperty("activePlayerIndex", out var activeIndexProperty)
+            || !activeIndexProperty.TryGetInt32(out var activePlayerIndex)
+            || !gameState.TryGetProperty("players", out var playersProperty)
+            || playersProperty.ValueKind != JsonValueKind.Array)
+        {
+            throw new HubException("O estado da partida está incompleto.");
+        }
+
+        var activePlayerId = playersProperty.EnumerateArray()
+            .ElementAtOrDefault(activePlayerIndex)
+            .GetPropertyOrNull("id");
+
+        if (!string.Equals(activePlayerId, player.PlayerId, StringComparison.Ordinal))
+        {
+            throw new HubException("Aguarde o seu turno para realizar esta ação.");
+        }
+    }
+
     private static string NormalizeRoomCode(string roomCode)
     {
         var code = new string((roomCode ?? string.Empty)
@@ -88,5 +135,17 @@ public sealed class GameHub(RoomStore rooms) : Hub
         }
 
         throw new HubException("A sala já atingiu o limite de 6 jogadores.");
+    }
+}
+
+internal static class JsonElementExtensions
+{
+    public static string? GetPropertyOrNull(this JsonElement element, string propertyName)
+    {
+        return element.ValueKind == JsonValueKind.Object
+            && element.TryGetProperty(propertyName, out var property)
+            && property.ValueKind == JsonValueKind.String
+            ? property.GetString()
+            : null;
     }
 }
