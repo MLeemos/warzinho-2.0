@@ -961,6 +961,7 @@ export default function App() {
           onOpenMechanicsEditor={() => setIsMechanicsEditorOpen(true)}
           onJoinOnlineRoom={handleJoinOnlineRoom}
           onlineRoom={onlineRoom}
+          onlineIsHost={isOnlineHost}
           onlineStatus={onlineStatus}
           activeMechanics={activeMechanics}
           objectivesDeck={objectivesDeck}

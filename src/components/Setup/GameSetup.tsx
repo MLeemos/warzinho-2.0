@@ -10,6 +10,7 @@ interface GameSetupProps {
   onOpenMechanicsEditor: () => void;
   onJoinOnlineRoom: (roomCode: string, playerName: string) => Promise<void>;
   onlineRoom: OnlineRoomSnapshot | null;
+  onlineIsHost: boolean;
   onlineStatus: string;
   activeMechanics: ActiveMechanics;
   objectivesDeck: SecretObjective[];
@@ -21,6 +22,7 @@ export const GameSetup: React.FC<GameSetupProps> = ({
   onOpenMechanicsEditor,
   onJoinOnlineRoom,
   onlineRoom,
+  onlineIsHost,
   onlineStatus,
   activeMechanics,
   objectivesDeck
@@ -69,7 +71,8 @@ export const GameSetup: React.FC<GameSetupProps> = ({
 
   const handleStart = () => {
     // Build actual player objects
-    const activeConfigs = playerConfigs.slice(0, numPlayers);
+    const playerCount = onlineRoom?.players.length || numPlayers;
+    const activeConfigs = playerConfigs.slice(0, playerCount);
     const assignedPlayers: Player[] = activeConfigs.map((cfg, idx) => ({
       id: `p_${idx + 1}`,
       name: onlineRoom?.players[idx]?.name || cfg.name.trim() || `Jogador ${idx + 1}`,
@@ -309,10 +312,15 @@ export const GameSetup: React.FC<GameSetupProps> = ({
           {/* Start Button */}
           <button
             onClick={handleStart}
+            disabled={Boolean(onlineRoom && (!onlineIsHost || onlineRoom.players.length < 2))}
             className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-base tracking-widest uppercase transition shadow-xl flex items-center justify-center gap-3 cursor-pointer"
           >
             <Play className="w-5 h-5 fill-current" />
-            <span>Distribuir Territórios & Iniciar Partida</span>
+            <span>{onlineRoom && !onlineIsHost
+              ? 'Aguardando o anfitrião iniciar'
+              : onlineRoom && onlineRoom.players.length < 2
+                ? 'Aguardando outro jogador'
+                : 'Distribuir Territórios & Iniciar Partida'}</span>
           </button>
         </div>
       </div>

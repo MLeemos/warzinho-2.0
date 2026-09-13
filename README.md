@@ -120,6 +120,7 @@ O projeto agora possui a base de um servidor multiplayer em C# com ASP.NET Core 
 - Uso de cartas táticas remotas encaminhado ao anfitrião antes da aplicação.
 - Remanejamento remoto com escolha da quantidade de tropas encaminhado ao anfitrião.
 - Combate remoto com resultado de dados, baixas, conquista e avanço encaminhado ao anfitrião.
+- Início da partida online restrito ao anfitrião, usando somente os jogadores conectados.
 - Validação server-side de origem, alvo, fase, baixas, conquista e tropas avançadas.
 - Rolagem completa de combate executada no servidor C# quando a partida está online.
 - Sessão de combate persistida no servidor até a escolha do avanço.
@@ -219,7 +220,7 @@ Configure `GEMINI_API_KEY` em `.env.local` usando [.env.example](.env.example) c
 
 3. Abra `http://localhost:3000` em duas janelas ou dispositivos da mesma rede e use o mesmo código de sala.
 
-O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes, recebe o estado completo publicado pelo anfitrião e bloqueia ações fora do turno. Seleções de território, avanço de fase, uso de cartas táticas, remanejamentos e resultados de combate remotos passam pelo servidor e são aplicados pelo anfitrião antes da sincronização. O servidor rejeita ações desconhecidas, jogadores que não pertencem à sala, ações fora do turno, resultados de combate impossíveis e cartas táticas que não estejam disponíveis ou não atendam aos requisitos. Em partidas online, a rolagem completa, as perdas, a sessão de combate até o avanço, a validação inicial das cartas, o efeito de Fortaleza e a preparação e finalização do Ataque Aéreo já são controlados pelo servidor; a próxima etapa é aplicar no servidor os efeitos restantes das cartas táticas.
+O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes, permite iniciar a partida somente ao anfitrião quando há pelo menos duas pessoas e coloca os demais jogadores em espera pelo estado inicial. Seleções de território, avanço de fase, uso de cartas táticas, remanejamentos e resultados de combate remotos passam pelo servidor e são aplicados pelo anfitrião antes da sincronização. O servidor rejeita ações desconhecidas, jogadores que não pertencem à sala, ações fora do turno, resultados de combate impossíveis e cartas táticas que não estejam disponíveis ou não atendam aos requisitos. Em partidas online, a rolagem completa, as perdas, a sessão de combate até o avanço, a validação inicial das cartas, o efeito de Fortaleza e a preparação e finalização do Ataque Aéreo já são controlados pelo servidor; a próxima etapa é aplicar no servidor os efeitos restantes das cartas táticas.
 
 ## Atualizações recentes
 
