@@ -883,10 +883,6 @@ export default function App() {
     } else if (card.effect === 'spy_objective') {
       setIsObjectiveModalOpen(true);
       addLog(`👁️ Espionagem militar obteve relatórios táticos de inteligência.`, 'mechanic');
-    } else if (card.effect === 'emergency_recruits') {
-      setReserveArmies(prev => prev + 3);
-      warAudio.playTroopPlace();
-      addLog(`🪖 Conscrição de Emergência! +3 exércitos adicionados à reserva.`, 'mechanic');
     } else if (card.effect === 'blitzkrieg') {
       warAudio.playDiceRoll();
       addLog(`⚡ Blitzkrieg ativada! Moral das tropas ofensivas no nível máximo.`, 'mechanic');

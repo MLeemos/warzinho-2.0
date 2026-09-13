@@ -98,6 +98,7 @@ export class GameClient {
     return this.connection.invoke('ResolveAirStrike', roomCode, movedArmies);
   }
 
+
   async disconnect(): Promise<void> {
     await this.connection.stop();
   }

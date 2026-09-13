@@ -379,7 +379,6 @@ public sealed class GameHub(RoomStore rooms) : Hub
             "tac_air_strike",
             "tac_fortify",
             "tac_spy",
-            "tac_emergency_recruits",
             "tac_blitzkrieg",
             "tac_peace"
         };

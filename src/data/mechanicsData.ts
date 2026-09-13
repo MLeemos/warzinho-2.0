@@ -20,7 +20,7 @@ export interface TacticalCard {
   description: string;
   costArmies: number;
   icon: string;
-  effect: 'air_strike' | 'fortify' | 'spy_objective' | 'emergency_recruits' | 'peace_treaty' | 'blitzkrieg';
+  effect: 'air_strike' | 'fortify' | 'spy_objective' | 'peace_treaty' | 'blitzkrieg';
 }
 
 export const TACTICAL_CARDS: TacticalCard[] = [
@@ -47,14 +47,6 @@ export const TACTICAL_CARDS: TacticalCard[] = [
     costArmies: 0,
     icon: 'Eye',
     effect: 'spy_objective'
-  },
-  {
-    id: 'tac_emergency_recruits',
-    name: 'Conscrição de Emergência',
-    description: 'Recebe imediatamente +3 exércitos adicionais para distribuir em qualquer território seu.',
-    costArmies: 0,
-    icon: 'Users',
-    effect: 'emergency_recruits'
   },
   {
     id: 'tac_blitzkrieg',
