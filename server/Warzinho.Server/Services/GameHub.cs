@@ -374,14 +374,7 @@ public sealed class GameHub(RoomStore rooms) : Hub
             throw new HubException("Esta carta tática não está disponível para o jogador.");
         }
 
-        var supportedCards = new[]
-        {
-            "tac_air_strike",
-            "tac_fortify",
-            "tac_spy",
-            "tac_blitzkrieg",
-            "tac_peace"
-        };
+        var supportedCards = new[] { "tac_air_strike" };
         if (!supportedCards.Contains(cardId, StringComparer.Ordinal))
         {
             throw new HubException("Carta tática desconhecida.");

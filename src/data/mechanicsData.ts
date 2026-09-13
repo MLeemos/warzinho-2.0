@@ -20,7 +20,7 @@ export interface TacticalCard {
   description: string;
   costArmies: number;
   icon: string;
-  effect: 'air_strike' | 'fortify' | 'spy_objective' | 'peace_treaty' | 'blitzkrieg';
+  effect: 'air_strike';
 }
 
 export const TACTICAL_CARDS: TacticalCard[] = [
@@ -32,38 +32,6 @@ export const TACTICAL_CARDS: TacticalCard[] = [
     icon: 'Plane',
     effect: 'air_strike'
   },
-  {
-    id: 'tac_fortify',
-    name: 'Construir Fortaleza',
-    description: 'Ergue uma guarnição fortificada no território. Adiciona +1 a todos os dados de defesa desse território.',
-    costArmies: 2,
-    icon: 'Shield',
-    effect: 'fortify'
-  },
-  {
-    id: 'tac_spy',
-    name: 'Espionagem Militar',
-    description: 'Revele o objetivo secreto e as cartas da mão de um comandante adversário por 1 rodada.',
-    costArmies: 0,
-    icon: 'Eye',
-    effect: 'spy_objective'
-  },
-  {
-    id: 'tac_blitzkrieg',
-    name: 'Guerra Relâmpago (Blitz)',
-    description: 'Seus próximos 3 ataques nesta rodada recebem +1 no dado de maior valor.',
-    costArmies: 1,
-    icon: 'Zap',
-    effect: 'blitzkrieg'
-  },
-  {
-    id: 'tac_peace',
-    name: 'Pacto de Não-Agressão',
-    description: 'Propõe uma trégua de 1 rodada com uma fronteira rival específica.',
-    costArmies: 0,
-    icon: 'Handshake',
-    effect: 'peace_treaty'
-  }
 ];
 
 export const GLOBAL_EVENTS: GlobalEvent[] = [

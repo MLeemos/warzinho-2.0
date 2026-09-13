@@ -192,7 +192,7 @@ export const MechanicsEditorModal: React.FC<MechanicsEditorModalProps> = ({
                 <div>
                   <h4 className="text-xs font-bold text-slate-100">Ações Táticas Especiais</h4>
                   <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-                    Comande Ataque Aéreo Estratégico, Espionagem Secreta e Guerra Relâmpago (Blitz).
+                    Comande apenas o Ataque Aéreo Estratégico. As demais cartas táticas estão desativadas temporariamente.
                   </p>
                 </div>
               </div>

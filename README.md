@@ -54,10 +54,7 @@ Warzinho 2.0 é um jogo digital de estratégia e conquista territorial inspirado
 ### Cartas táticas
 
 - **Ataque Aéreo Estratégico:** exige pelo menos 20 soldados na origem, permite escolher o efetivo, consome metade como custo, sorteia qualquer território inimigo, usa combate normal e ocupa o alvo com sobreviventes em caso de vitória. A carta é consumida ao ser usada.
-- **Construir Fortaleza:** fortifica um território próprio e concede bônus defensivo.
-- **Espionagem Militar:** abre informações do objetivo e inteligência do adversário.
-- **Guerra Relâmpago:** ativa bônus temporário para ataques.
-- **Pacto de Não-Agressão:** representa uma trégua temporária com uma fronteira rival.
+- As demais cartas táticas estão desativadas temporariamente.
 
 ### Objetivos e vitória
 

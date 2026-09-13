@@ -260,7 +260,7 @@ export default function App() {
       ...p,
       objectiveId: shuffledObjs[idx % shuffledObjs.length]?.id || CLASSIC_OBJECTIVES[0].id,
       cards: [],
-      tacticalCards: ['tac_air_strike', 'tac_fortify'],
+      tacticalCards: ['tac_air_strike'],
       eliminated: false,
       stats: {
         territoriesLost: 0,
@@ -874,19 +874,8 @@ export default function App() {
       )));
     }
 
-    if (card.effect === 'air_strike') {
-      setTacticalTargetMode('air_strike');
-      addLog(`✈️ ${card.name} utilizada: selecione um território seu com pelo menos 20 tropas.`, 'mechanic');
-    } else if (card.effect === 'fortify') {
-      setTacticalTargetMode('fortify');
-      addLog(`🛡️ Modo Fortaleza: Clique em um território seu para erguer fortificação (+1 dado de defesa).`, 'mechanic');
-    } else if (card.effect === 'spy_objective') {
-      setIsObjectiveModalOpen(true);
-      addLog(`👁️ Espionagem militar obteve relatórios táticos de inteligência.`, 'mechanic');
-    } else if (card.effect === 'blitzkrieg') {
-      warAudio.playDiceRoll();
-      addLog(`⚡ Blitzkrieg ativada! Moral das tropas ofensivas no nível máximo.`, 'mechanic');
-    }
+    setTacticalTargetMode('air_strike');
+    addLog(`✈️ ${card.name} utilizada: selecione um território seu com pelo menos 20 tropas.`, 'mechanic');
   };
 
   const confirmAirStrike = async () => {

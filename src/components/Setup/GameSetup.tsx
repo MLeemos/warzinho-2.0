@@ -77,7 +77,7 @@ export const GameSetup: React.FC<GameSetupProps> = ({
       isAI: onlineRoom?.players[idx] ? false : cfg.isAI,
       objectiveId: '',
       cards: [],
-      tacticalCards: ['tac_air_strike', 'tac_fortify'],
+      tacticalCards: ['tac_air_strike'],
       eliminated: false,
       stats: {
         territoriesLost: 0,
