@@ -123,7 +123,7 @@ export const MechanicsEditorModal: React.FC<MechanicsEditorModalProps> = ({
                 <div>
                   <h4 className="text-xs font-bold text-slate-100">Ataque Aéreo / Míssil</h4>
                   <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-                    Ataques a longa distância (até 2 conexões) para bombardear exércitos inimigos sem invadir.
+                    Ataque contra um território inimigo aleatório em qualquer lugar do mapa, usando combate normal.
                   </p>
                 </div>
               </div>

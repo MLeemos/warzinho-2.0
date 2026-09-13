@@ -27,7 +27,7 @@ export const TACTICAL_CARDS: TacticalCard[] = [
   {
     id: 'tac_air_strike',
     name: 'Ataque Aéreo Estratégico',
-    description: 'Exige pelo menos 20 tropas no território de lançamento. Seleciona um território inimigo aleatório a até 2 conexões e inicia um combate; se vencer, os sobreviventes ocupam a área atacada.',
+    description: 'Exige pelo menos 20 tropas no território de lançamento. Seleciona um território inimigo aleatório em qualquer lugar do mapa e inicia um combate; se vencer, os sobreviventes ocupam a área atacada.',
     costArmies: 1,
     icon: 'Plane',
     effect: 'air_strike'

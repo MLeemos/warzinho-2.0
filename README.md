@@ -1,31 +1,131 @@
-# War 2.0
+# Warzinho 2.0
 
-War 2.0 é uma experiência digital de estratégia inspirada em jogos de conquista territorial. O projeto reúne mapa de guerra, objetivos, combate, cartas táticas, manobras e ferramentas para configurar e acompanhar uma partida.
+Warzinho 2.0 é um jogo digital de estratégia e conquista territorial inspirado no WAR Grow. A aplicação oferece um mapa global interativo, combate com dados, objetivos secretos, cartas de território, cartas táticas, eventos globais e ferramentas para criar novas regras.
 
-## Recursos
+## O que existe no jogo
 
-- Tabuleiro estratégico com territórios e conexões
-- Configuração de jogadores e objetivos
-- Sistema de combate e manobras
-- Cartas táticas
-- Editor de mecânicas e construtor de objetivos
-- Registro de eventos da partida
-- Interface responsiva para desktop
+### Preparação da partida
 
-## Atualizações recentes
+- Partidas com 2 a 6 generais.
+- Jogadores humanos ou IA.
+- Escolha de nome e cor de cada jogador.
+- Distribuição aleatória dos territórios.
+- Sorteio de objetivos secretos.
+- Cartas táticas iniciais para cada jogador.
+- Editor de objetivos personalizados antes da partida.
+- Oficina para ativar ou desativar mecânicas.
 
-As novidades mais recentes ficam nesta seção, sempre com a alteração mais nova primeiro.
+### Tabuleiro e mapa
 
-### Ataque Aéreo Estratégico
+- Mapa SVG interativo com 42 territórios.
+- Seis continentes: América do Norte, América do Sul, Europa, África, Ásia e Oceania.
+- Conexões terrestres e rotas marítimas.
+- Bônus de exércitos por continente controlado.
+- Cores próprias para territórios, continentes e jogadores.
+- Nevoeiro de guerra opcional.
+- Indicação visual de território selecionado, alvo e rota de ataque.
 
-- Exige pelo menos 20 soldados no território de origem.
-- Permite escolher quantos soldados serão comprometidos no ataque.
-- Metade do efetivo escolhido é consumida como custo da operação.
-- Sorteia um território inimigo em qualquer lugar do mapa.
-- Usa o combate normal, incluindo dados e defesa do território.
-- O defensor pode vencer e causar as baixas normalmente.
-- Em caso de vitória, o território é conquistado e os sobreviventes avançam para ocupá-lo.
-- A carta é consumida quando utilizada.
+### Fases do turno
+
+1. **Distribuição:** posiciona os exércitos da reserva nos próprios territórios.
+2. **Ataque:** seleciona um território próprio com pelo menos 2 tropas e ataca um inimigo válido.
+3. **Remanejamento:** move tropas entre territórios próprios conectados, mantendo pelo menos 1 na origem.
+4. **Fim do turno:** pode receber carta por conquista, verifica vitória, troca o jogador e inicia eventos da nova rodada.
+
+### Combate
+
+- O atacante e o defensor rolam dados de 1 a 6.
+- O atacante pode usar até 3 dados, sem deixar a origem sem tropas.
+- O defensor pode usar até 3 dados.
+- Os dados são comparados em ordem decrescente.
+- Por padrão, o defensor vence empates.
+- Fortalezas podem adicionar +1 aos dados defensivos.
+- Se o defensor for derrotado, o atacante escolhe quantos sobreviventes avançam.
+- Se o atacante perder, as baixas são aplicadas sem conquistar o território.
+- A eliminação de um jogador transfere suas cartas ao vencedor.
+
+### Cartas de território
+
+- O jogador recebe uma carta ao conquistar pelo menos um território no turno.
+- Trocas exigem 3 cartas em combinação válida: símbolos iguais, um de cada símbolo ou coringas.
+- A tabela de troca é progressiva: 4, 6, 8, 10, 12, 15, 20 e depois progressão de 5.
+- Cartas correspondentes a territórios ocupados concedem bônus adicional de exércitos.
+
+### Cartas táticas
+
+- **Ataque Aéreo Estratégico:** exige pelo menos 20 soldados na origem, permite escolher o efetivo, consome metade como custo, sorteia qualquer território inimigo, usa combate normal e ocupa o alvo com sobreviventes em caso de vitória. A carta é consumida ao ser usada.
+- **Construir Fortaleza:** fortifica um território próprio e concede bônus defensivo.
+- **Espionagem Militar:** abre informações do objetivo e inteligência do adversário.
+- **Conscrição de Emergência:** adiciona 3 exércitos à reserva.
+- **Guerra Relâmpago:** ativa bônus temporário para ataques.
+- **Pacto de Não-Agressão:** representa uma trégua temporária com uma fronteira rival.
+
+### Objetivos e vitória
+
+- Conquistar continentes específicos.
+- Conquistar uma quantidade de territórios.
+- Controlar territórios com um mínimo de exércitos.
+- Eliminar a cor de um adversário.
+- Dominar territórios estratégicos.
+- Controlar territórios insulares e rotas marítimas.
+- Criar objetivos personalizados por continente, quantidade, cor e territórios obrigatórios.
+- Ao cumprir o objetivo, a partida mostra a vitória, duração e número de conquistas.
+
+### Mecânicas configuráveis
+
+- Nevoeiro de guerra.
+- Ataques aéreos.
+- Fortificações.
+- Eventos globais.
+- Cartas táticas.
+- Vitória do defensor em empates.
+- Trocas progressivas de cartas.
+- Modo capitais.
+- Remanejamento ilimitado.
+- Pactos de aliança.
+- Quantidade mínima de tropas por rodada.
+
+### Eventos globais
+
+- Inverno Siberiano Severo.
+- Crise no Canal de Suez.
+- Remessa Aliada de Armamentos.
+- Insurreição Popular.
+- Monções Tropicais no Sudeste Asiático.
+
+### Interface e feedback
+
+- Cabeçalho com jogador ativo, cor, rodada, fase e tropas disponíveis.
+- Painel de ações para objetivos, cartas, táticas, regras, objetivos e histórico.
+- Diário de bordo com combates, conquistas, reforços, eventos e eliminações.
+- Sons procedurais para dados, combate, conquista, tropas, cartas, cliques e vitória.
+- Tela de vitória com objetivo cumprido, estatísticas e confetes.
+
+## Estrutura do código
+
+| Caminho | Responsabilidade |
+| --- | --- |
+| `src/App.tsx` | Estado da partida, turnos, ataques, conquistas, cartas e integração dos componentes. |
+| `src/main.tsx` | Inicialização React e montagem da aplicação. |
+| `src/types/war.ts` | Tipos de jogadores, territórios, objetivos, mecânicas, eventos e logs. |
+| `src/data/warMapData.ts` | Continentes, territórios, vizinhanças, rotas marítimas, cores e tabela de cartas. |
+| `src/data/mechanicsData.ts` | Mecânicas padrão, cartas táticas e eventos globais. |
+| `src/data/objectivesData.ts` | Objetivos clássicos, objetivos expandidos e cálculo de progresso. |
+| `src/components/Setup/GameSetup.tsx` | Configuração de jogadores, IA, cores e início da partida. |
+| `src/components/Map/WarBoard.tsx` | Renderização e interação com o mapa SVG. |
+| `src/components/Combat/CombatModal.tsx` | Dados, perdas, combate automático e avanço após conquista. |
+| `src/components/Combat/ManeuverModal.tsx` | Escolha da quantidade de tropas para remanejamento. |
+| `src/components/Cards/CardsModal.tsx` | Cartas de território e trocas por reforços. |
+| `src/components/Modals/TacticalCardsModal.tsx` | Lista e execução das cartas táticas disponíveis. |
+| `src/components/Modals/MechanicsEditorModal.tsx` | Ativação e personalização das mecânicas. |
+| `src/components/Modals/ObjectivesBuilderModal.tsx` | Criação e gerenciamento de objetivos personalizados. |
+| `src/components/Modals/GameLogModal.tsx` | Histórico visual da partida. |
+| `src/components/Modals/VictoryModal.tsx` | Resultado e estatísticas da vitória. |
+| `src/components/HUD/ActionPanel.tsx` | Ações principais do jogador durante a partida. |
+| `src/components/HUD/GameHeader.tsx` | Informações da rodada e da fase atual. |
+| `src/components/Objective/ObjectiveModal.tsx` | Objetivo secreto e progresso atual. |
+| `src/sound/audio.ts` | Motor de áudio procedural com Web Audio API. |
+| `src/index.css` | Estilos globais e utilitários visuais. |
 
 ## Tecnologias
 
@@ -35,38 +135,40 @@ As novidades mais recentes ficam nesta seção, sempre com a alteração mais no
 - Tailwind CSS
 - Lucide React
 - Motion
+- Canvas Confetti
 - Google Gemini API
 
 ## Como executar
 
-**Pré-requisitos:** Node.js
+**Pré-requisito:** Node.js
 
-1. Instale as dependências:
+```bash
+npm install
+npm run dev
+```
 
-   ```bash
-   npm install
-   ```
+O aplicativo fica disponível em `http://localhost:3000`.
 
-2. Configure a chave da API Gemini no arquivo `.env.local` usando [.env.example](.env.example) como referência:
-
-   ```env
-   GEMINI_API_KEY=sua-chave-aqui
-   ```
-
-3. Inicie o servidor de desenvolvimento:
-
-   ```bash
-   npm run dev
-   ```
-
-O aplicativo estará disponível em `http://localhost:3000`.
-
-## Build de produção
+Para gerar a versão de produção:
 
 ```bash
 npm run build
 ```
 
-## Repositório
+Para verificar os tipos:
 
-O projeto está publicado como repositório público em [MLeemos/warzinho-2.0](https://github.com/MLeemos/warzinho-2.0). A versão atual dos arquivos está no branch [`local-project-import`](https://github.com/MLeemos/warzinho-2.0/tree/local-project-import).
+```bash
+npm run lint
+```
+
+Configure `GEMINI_API_KEY` em `.env.local` usando [.env.example](.env.example) como referência. Arquivos `.env` reais não devem ser enviados ao GitHub.
+
+## Atualizações recentes
+
+As novidades devem ser adicionadas aqui, sempre com a mais nova primeiro. A atualização atual é o **Ataque Aéreo Estratégico**, documentado na seção de cartas táticas e implementado em `src/App.tsx`, `src/data/mechanicsData.ts` e `src/components/Modals/TacticalCardsModal.tsx`.
+
+## Fluxo de sincronização
+
+O código local fica em `C:\Users\mleem\Downloads\war-estratégia-global` e o repositório público está em [MLeemos/warzinho-2.0](https://github.com/MLeemos/warzinho-2.0), no branch [`local-project-import`](https://github.com/MLeemos/warzinho-2.0/tree/local-project-import).
+
+Quando uma alteração for feita neste projeto, o fluxo deste trabalho é: atualizar o código, atualizar este README com a novidade, validar com typecheck/build, criar commit e enviar ao GitHub. O GitHub não atualiza arquivos locais automaticamente; a sincronização precisa acontecer por commit e push.
