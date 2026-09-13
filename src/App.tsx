@@ -441,7 +441,11 @@ export default function App() {
     if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
       onlineClient.sendGameAction(onlineRoom.code, {
         type: 'resolve-combat',
-        payload: result
+        payload: {
+          ...result,
+          sourceId: selectedTerritoryId,
+          targetId: targetTerritoryId
+        }
       }).catch(error => {
         setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível enviar o resultado do combate.');
       });

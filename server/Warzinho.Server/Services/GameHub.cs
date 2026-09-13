@@ -105,6 +105,75 @@ public sealed class GameHub(RoomStore rooms) : Hub
         {
             throw new HubException("Aguarde o seu turno para realizar esta ação.");
         }
+
+        if (action.Type == "resolve-combat")
+        {
+            ValidateCombatResult(player, gameState, action.Payload);
+        }
+    }
+
+    private static void ValidateCombatResult(RoomPlayer player, JsonElement gameState, JsonElement payload)
+    {
+        var sourceId = payload.GetPropertyOrNull("sourceId");
+        var targetId = payload.GetPropertyOrNull("targetId");
+        if (string.IsNullOrWhiteSpace(sourceId) || string.IsNullOrWhiteSpace(targetId))
+        {
+            throw new HubException("O combate precisa informar origem e alvo.");
+        }
+
+        if (!gameState.TryGetProperty("currentPhase", out var phaseProperty)
+            || !string.Equals(phaseProperty.GetString(), "attack", StringComparison.Ordinal))
+        {
+            throw new HubException("Combates só podem acontecer na fase de ataque.");
+        }
+
+        if (!gameState.TryGetProperty("territories", out var territories)
+            || territories.ValueKind != JsonValueKind.Object
+            || !territories.TryGetProperty(sourceId, out var source)
+            || !territories.TryGetProperty(targetId, out var target))
+        {
+            throw new HubException("Origem ou alvo do combate não existe.");
+        }
+
+        var sourceOwner = source.GetPropertyOrNull("ownerId");
+        var targetOwner = target.GetPropertyOrNull("ownerId");
+        var sourceArmies = source.GetPropertyOrDefault("armies", 0);
+        var targetArmies = target.GetPropertyOrDefault("armies", 0);
+        var attackerRemaining = payload.GetPropertyOrDefault("attackerRemaining", -1);
+        var defenderRemaining = payload.GetPropertyOrDefault("defenderRemaining", -1);
+        var movedArmies = payload.GetPropertyOrDefault("movedArmies", 0);
+        var conquered = payload.GetPropertyOrDefault("conquered", false);
+
+        if (!string.Equals(sourceOwner, player.PlayerId, StringComparison.Ordinal)
+            || string.Equals(targetOwner, player.PlayerId, StringComparison.Ordinal))
+        {
+            throw new HubException("O combate usa territórios inválidos para este jogador.");
+        }
+
+        if (sourceArmies < 2 || attackerRemaining < 1 || attackerRemaining + movedArmies > sourceArmies)
+        {
+            throw new HubException("Quantidade de tropas atacantes inválida.");
+        }
+
+        if (defenderRemaining < 0 || defenderRemaining > targetArmies)
+        {
+            throw new HubException("Quantidade de tropas defensoras inválida.");
+        }
+
+        if (conquered != (defenderRemaining == 0))
+        {
+            throw new HubException("O resultado de conquista não corresponde às tropas defensoras.");
+        }
+
+        if (!conquered && movedArmies != 0)
+        {
+            throw new HubException("Não é possível avançar tropas sem conquistar o território.");
+        }
+
+        if (conquered && (movedArmies < 1 || movedArmies >= sourceArmies))
+        {
+            throw new HubException("A conquista precisa deixar tropas na origem e avançar sobreviventes.");
+        }
     }
 
     private static string NormalizeRoomCode(string roomCode)
@@ -147,5 +216,23 @@ internal static class JsonElementExtensions
             && property.ValueKind == JsonValueKind.String
             ? property.GetString()
             : null;
+    }
+
+    public static int GetPropertyOrDefault(this JsonElement element, string propertyName, int fallback)
+    {
+        return element.ValueKind == JsonValueKind.Object
+            && element.TryGetProperty(propertyName, out var property)
+            && property.TryGetInt32(out var value)
+            ? value
+            : fallback;
+    }
+
+    public static bool GetPropertyOrDefault(this JsonElement element, string propertyName, bool fallback)
+    {
+        return element.ValueKind == JsonValueKind.Object
+            && element.TryGetProperty(propertyName, out var property)
+            && property.ValueKind is JsonValueKind.True or JsonValueKind.False
+            ? property.GetBoolean()
+            : fallback;
     }
 }
