@@ -12,6 +12,21 @@ War 2.0 é uma experiência digital de estratégia inspirada em jogos de conquis
 - Registro de eventos da partida
 - Interface responsiva para desktop
 
+## Atualizações recentes
+
+As novidades mais recentes ficam nesta seção, sempre com a alteração mais nova primeiro.
+
+### Ataque Aéreo Estratégico
+
+- Exige pelo menos 20 soldados no território de origem.
+- Permite escolher quantos soldados serão comprometidos no ataque.
+- Metade do efetivo escolhido é consumida como custo da operação.
+- Sorteia um território inimigo em qualquer lugar do mapa.
+- Usa o combate normal, incluindo dados e defesa do território.
+- O defensor pode vencer e causar as baixas normalmente.
+- Em caso de vitória, o território é conquistado e os sobreviventes avançam para ocupá-lo.
+- A carta é consumida quando utilizada.
+
 ## Tecnologias
 
 - React 19
