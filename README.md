@@ -225,6 +225,7 @@ O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a qua
 ## Atualizações recentes
 
 - **Acesso externo ao multiplayer:** o cliente aceita `VITE_GAME_SERVER_URL`, permitindo apontar o SignalR para um túnel público ou servidor hospedado; a tela inicial também cria códigos de sala automaticamente.
+- **Correções multiplayer:** o uso de Fortaleza pelo anfitrião agora é registrado no servidor, e as mecânicas configuradas pelo anfitrião são sincronizadas com todos os jogadores.
 - **Ataque Aéreo Estratégico**, documentado na seção de cartas táticas e implementado em `src/App.tsx`, `src/data/mechanicsData.ts` e `src/components/Modals/TacticalCardsModal.tsx`.
 
 ### Jogar com amigos fora da rede local

@@ -30,6 +30,7 @@ import { GameClient, OnlineRoomSnapshot } from './multiplayer/gameClient';
 
 interface OnlineGameState {
   players: Player[];
+  activeMechanics: ActiveMechanics;
   activePlayerIndex: number;
   currentRound: number;
   currentPhase: TurnPhase;
@@ -102,6 +103,7 @@ export default function App() {
     if (!state.players || !state.territories || !state.currentPhase) return;
 
     setPlayers(state.players);
+    setActiveMechanics(state.activeMechanics ?? DEFAULT_MECHANICS);
     setActivePlayerIndex(state.activePlayerIndex ?? 0);
     setCurrentRound(state.currentRound ?? 1);
     setCurrentPhase(state.currentPhase);
@@ -147,6 +149,7 @@ export default function App() {
 
     const state: OnlineGameState = {
       players,
+      activeMechanics,
       activePlayerIndex,
       currentRound,
       currentPhase,
@@ -165,6 +168,7 @@ export default function App() {
     inGame,
     onlineClient,
     onlineRoom,
+    activeMechanics,
     players,
     activePlayerIndex,
     currentRound,
@@ -856,14 +860,14 @@ export default function App() {
   // Tactical Actions handler
   const handleUseTacticalAction = (card: TacticalCard, fromServer = false) => {
     if (!activePlayer || (!fromServer && !isOnlineTurn)) return;
-    if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
+    if (onlineClient && onlineRoom && !fromServer) {
       onlineClient.sendGameAction(onlineRoom.code, {
         type: 'use-card',
         payload: { cardId: card.id }
       }).catch(error => {
         setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível usar a carta.');
       });
-      return;
+      if (!isOnlineHost) return;
     }
 
     if (!onlineClient || !onlineRoom) {
