@@ -17,6 +17,7 @@ public sealed class RoomState
 }
 
 public sealed record RoomPlayer(
+    string PlayerId,
     string ConnectionId,
     string Name,
     DateTimeOffset JoinedAt);

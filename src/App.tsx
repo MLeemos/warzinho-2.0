@@ -78,6 +78,7 @@ export default function App() {
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [onlineClient, setOnlineClient] = useState<GameClient | null>(null);
   const [onlineRoom, setOnlineRoom] = useState<OnlineRoomSnapshot | null>(null);
+  const [onlinePlayerId, setOnlinePlayerId] = useState<string | null>(null);
   const [onlineStatus, setOnlineStatus] = useState('');
 
   // Tactical Action Mode (e.g. Air strike selection)
@@ -90,6 +91,7 @@ export default function App() {
   } | null>(null);
 
   const activePlayer = players[activePlayerIndex] || null;
+  const isOnlineTurn = !onlinePlayerId || activePlayer?.id === onlinePlayerId;
 
   const applyOnlineGameState = useCallback((rawState: unknown) => {
     if (!rawState || typeof rawState !== 'object') return;
@@ -117,6 +119,8 @@ export default function App() {
       const room = await client.joinRoom(roomCode, playerName);
       setOnlineClient(client);
       setOnlineRoom(room);
+      const joinedPlayer = room.players.find(player => player.connectionId === client.getConnectionId());
+      setOnlinePlayerId(joinedPlayer?.playerId || null);
       if (room.gameState) applyOnlineGameState(room.gameState);
       setOnlineStatus('Conectado à sala. O estado da partida será compartilhado pelo anfitrião.');
     } catch (error) {
@@ -328,7 +332,7 @@ export default function App() {
 
   // Handle Territory Click
   const handleSelectTerritory = (territoryId: string) => {
-    if (!activePlayer || activePlayer.isAI) return;
+    if (!activePlayer || activePlayer.isAI || !isOnlineTurn) return;
     const tState = territories[territoryId];
     if (!tState) return;
 

@@ -5,6 +5,7 @@ import {
 } from '@microsoft/signalr';
 
 export interface OnlineRoomPlayer {
+  playerId: string;
   connectionId: string;
   name: string;
   joinedAt: string;

@@ -14,6 +14,7 @@ public sealed class GameHub(RoomStore rooms) : Hub
         if (room.Players.Values.All(player => player.ConnectionId != Context.ConnectionId))
         {
             room.Players[Context.ConnectionId] = new RoomPlayer(
+                GetNextPlayerId(room),
                 Context.ConnectionId,
                 name,
                 DateTimeOffset.UtcNow);
@@ -72,5 +73,20 @@ public sealed class GameHub(RoomStore rooms) : Hub
         }
 
         return code;
+    }
+
+    private static string GetNextPlayerId(RoomState room)
+    {
+        var usedIds = room.Players.Values
+            .Select(player => player.PlayerId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        for (var index = 1; index <= 6; index++)
+        {
+            var candidate = $"p_{index}";
+            if (!usedIds.Contains(candidate)) return candidate;
+        }
+
+        throw new HubException("A sala já atingiu o limite de 6 jogadores.");
     }
 }

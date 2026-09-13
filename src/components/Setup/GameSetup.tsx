@@ -72,9 +72,9 @@ export const GameSetup: React.FC<GameSetupProps> = ({
     const activeConfigs = playerConfigs.slice(0, numPlayers);
     const assignedPlayers: Player[] = activeConfigs.map((cfg, idx) => ({
       id: `p_${idx + 1}`,
-      name: cfg.name.trim() || `Jogador ${idx + 1}`,
+      name: onlineRoom?.players[idx]?.name || cfg.name.trim() || `Jogador ${idx + 1}`,
       color: cfg.color,
-      isAI: cfg.isAI,
+      isAI: onlineRoom?.players[idx] ? false : cfg.isAI,
       objectiveId: '',
       cards: [],
       tacticalCards: ['tac_air_strike', 'tac_fortify'],
@@ -169,9 +169,18 @@ export const GameSetup: React.FC<GameSetupProps> = ({
           </div>
           {onlineStatus && <p className="mt-3 text-xs text-amber-300">{onlineStatus}</p>}
           {onlineRoom && (
-            <div className="mt-4 flex items-center gap-2 text-xs text-cyan-200">
-              <Users className="h-4 w-4" />
-              <span>Sala {onlineRoom.code}: {onlineRoom.players.length} jogador(es) conectado(s).</span>
+            <div className="mt-4 space-y-2 text-xs text-cyan-200">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>Sala {onlineRoom.code}: {onlineRoom.players.length} jogador(es) conectado(s).</span>
+              </div>
+              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                {onlineRoom.players.map(player => (
+                  <span key={player.connectionId} className="rounded bg-slate-950/70 px-2 py-1 text-slate-300">
+                    {player.playerId}: {player.name}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
