@@ -247,9 +247,10 @@ Use a URL HTTPS do túnel da porta `5000` em `.env.local`:
 
 ```env
 VITE_GAME_SERVER_URL="https://seu-tunel-do-servidor.example"
+VITE_ALLOW_TUNNEL="true"
 ```
 
-Reinicie `npm run dev` depois de alterar a variável e envie aos amigos a URL HTTPS do túnel da porta `3000`. Todos entram pelo mesmo endereço e usam o mesmo código de sala. Para produção, hospede o frontend e o servidor SignalR em URLs HTTPS permanentes; as salas atuais ficam em memória e são perdidas quando o servidor reinicia.
+Reinicie `npm run dev` depois de alterar as variáveis e envie aos amigos a URL HTTPS do túnel da porta `3000`. `VITE_ALLOW_TUNNEL` libera hosts externos apenas para esse teste de desenvolvimento. Todos entram pelo mesmo endereço e usam o mesmo código de sala. Para produção, hospede o frontend e o servidor SignalR em URLs HTTPS permanentes; as salas atuais ficam em memória e são perdidas quando o servidor reinicia.
 
 ## Fluxo de sincronização
 
