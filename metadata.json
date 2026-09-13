@@ -1,0 +1,6 @@
+{
+  "name": "WAR Estratégia Global",
+  "description": "Jogo de estratégia e conquista de territórios baseado no mapa oficial de WAR Grow com criador de novas mecânicas e objetivos personalizados.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
