@@ -125,6 +125,7 @@ O projeto agora possui a base de um servidor multiplayer em C# com ASP.NET Core 
 - Remanejamento remoto com escolha da quantidade de tropas encaminhado ao anfitrião.
 - Combate remoto com resultado de dados, baixas, conquista e avanço encaminhado ao anfitrião.
 - Validação server-side de origem, alvo, fase, baixas, conquista e tropas avançadas.
+- Rolagem completa de combate executada no servidor C# quando a partida está online.
 
 Para executar o servidor localmente:
 
@@ -217,7 +218,7 @@ Configure `GEMINI_API_KEY` em `.env.local` usando [.env.example](.env.example) c
 
 3. Abra `http://localhost:3000` em duas janelas ou dispositivos da mesma rede e use o mesmo código de sala.
 
-O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes, recebe o estado completo publicado pelo anfitrião e bloqueia ações fora do turno. Seleções de território, avanço de fase, uso de cartas táticas, remanejamentos e resultados de combate remotos passam pelo servidor e são aplicados pelo anfitrião antes da sincronização. O servidor rejeita ações desconhecidas, jogadores que não pertencem à sala, ações fora do turno e resultados de combate impossíveis. A próxima etapa é mover a rolagem e a resolução dos dados para o servidor, eliminando a confiança no resultado calculado pelo navegador.
+O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes, recebe o estado completo publicado pelo anfitrião e bloqueia ações fora do turno. Seleções de território, avanço de fase, uso de cartas táticas, remanejamentos e resultados de combate remotos passam pelo servidor e são aplicados pelo anfitrião antes da sincronização. O servidor rejeita ações desconhecidas, jogadores que não pertencem à sala, ações fora do turno e resultados de combate impossíveis. Em partidas online, a rolagem completa e as perdas do combate já são calculadas no servidor; a próxima etapa é persistir a sessão de combate no servidor durante a escolha do avanço e mover as demais regras de cartas para essa autoridade.
 
 ## Atualizações recentes
 

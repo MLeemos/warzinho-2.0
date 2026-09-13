@@ -18,6 +18,16 @@ export interface OnlineRoomSnapshot {
   gameState: unknown | null;
 }
 
+export interface CombatRollResult {
+  attackerDice: number[];
+  defenderDice: number[];
+  attackerLosses: number;
+  defenderLosses: number;
+  attackerRemaining: number;
+  defenderRemaining: number;
+  conquered: boolean;
+}
+
 export class GameClient {
   private readonly connection: HubConnection;
 
@@ -63,6 +73,10 @@ export class GameClient {
 
   async publishGameState(roomCode: string, state: unknown): Promise<void> {
     await this.connection.invoke('PublishGameState', roomCode, state);
+  }
+
+  async rollCombat(roomCode: string, sourceId: string, targetId: string): Promise<CombatRollResult> {
+    return this.connection.invoke<CombatRollResult>('RollCombat', roomCode, sourceId, targetId);
   }
 
   async disconnect(): Promise<void> {

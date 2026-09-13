@@ -131,6 +131,16 @@ export default function App() {
     }
   };
 
+  const handleRollCombat = async () => {
+    if (!onlineClient || !onlineRoom || !selectedTerritoryId || !targetTerritoryId) return null;
+    try {
+      return await onlineClient.rollCombat(onlineRoom.code, selectedTerritoryId, targetTerritoryId);
+    } catch (error) {
+      setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível rolar o combate no servidor.');
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!inGame || !onlineClient || !onlineRoom) return;
     if (onlineClient.getConnectionId() !== onlineRoom.hostConnectionId) return;
@@ -1048,6 +1058,7 @@ export default function App() {
           defenderTerritoryState={territories[targetTerritoryId]}
           activeMechanics={activeMechanics}
           onResolveCombat={handleResolveCombat}
+          onRollCombat={onlineClient && onlineRoom ? handleRollCombat : undefined}
           onClose={() => {
             setIsCombatModalOpen(false);
             setTargetTerritoryId(null);

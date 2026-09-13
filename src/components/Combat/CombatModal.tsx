@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TERRITORIES, PLAYER_COLORS } from '../../data/warMapData';
 import { ActiveMechanics, Player, TerritoryState } from '../../types/war';
 import { warAudio } from '../../sound/audio';
+import { CombatRollResult } from '../../multiplayer/gameClient';
 import { Swords, Shield, Skull, ArrowRight, CheckCircle, RotateCcw, Zap } from 'lucide-react';
 
 interface CombatModalProps {
@@ -16,6 +17,7 @@ interface CombatModalProps {
     conquered: boolean;
     movedArmies: number;
   }) => void;
+  onRollCombat?: () => Promise<CombatRollResult | null>;
   onClose: void | (() => void);
 }
 
@@ -26,6 +28,7 @@ export const CombatModal: React.FC<CombatModalProps> = ({
   defenderTerritoryState,
   activeMechanics,
   onResolveCombat,
+  onRollCombat,
   onClose
 }) => {
   const [attArmies, setAttArmies] = useState(attackerTerritoryState.armies);
@@ -60,8 +63,45 @@ export const CombatModal: React.FC<CombatModalProps> = ({
     setSelectedDefDiceCount(Math.min(3, Math.max(1, defArmies)));
   }, [defArmies]);
 
+  const resolveOnServer = async (): Promise<boolean> => {
+    if (!onRollCombat) return false;
+
+    setIsRolling(true);
+    warAudio.playDiceRoll();
+    try {
+      const result = await onRollCombat();
+      if (!result) return false;
+
+      setAttDice(result.attackerDice);
+      setDefDice(result.defenderDice);
+      setLastAttLosses(result.attackerLosses);
+      setLastDefLosses(result.defenderLosses);
+      setAttArmies(result.attackerRemaining);
+      setDefArmies(result.defenderRemaining);
+
+      if (result.conquered) {
+        setConquered(true);
+        warAudio.playConquest();
+        const minToAdvance = Math.min(3, result.attackerRemaining - 1);
+        setMinAdvance(Math.max(1, minToAdvance));
+        setAdvanceCount(Math.max(1, minToAdvance));
+      } else if (result.attackerLosses > 0 || result.defenderLosses > 0) {
+        warAudio.playClash();
+      }
+
+      return true;
+    } finally {
+      setIsRolling(false);
+    }
+  };
+
   const rollDice = () => {
     if (isRolling || conquered || attArmies <= 1 || defArmies <= 0) return;
+
+    if (onRollCombat) {
+      void resolveOnServer();
+      return;
+    }
 
     setIsRolling(true);
     warAudio.playDiceRoll();
@@ -139,6 +179,11 @@ export const CombatModal: React.FC<CombatModalProps> = ({
 
   const handleAutoResolve = () => {
     if (isRolling || conquered) return;
+
+    if (onRollCombat) {
+      void resolveOnServer();
+      return;
+    }
 
     let currentAtt = attArmies;
     let currentDef = defArmies;

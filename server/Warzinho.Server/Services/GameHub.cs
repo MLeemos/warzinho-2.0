@@ -48,6 +48,67 @@ public sealed class GameHub(RoomStore rooms) : Hub
         await Clients.Group(room.Code).SendAsync("GameStateUpdated", gameState);
     }
 
+    public CombatRollResult RollCombat(string roomCode, string sourceId, string targetId)
+    {
+        var room = RequireRoom(roomCode);
+        var player = room.Players.GetValueOrDefault(Context.ConnectionId)
+            ?? throw new HubException("Você não está conectado a esta sala.");
+
+        if (!room.GameState.HasValue)
+        {
+            throw new HubException("A partida ainda não foi iniciada.");
+        }
+
+        var gameState = room.GameState.Value;
+        ValidateActiveTurn(gameState, player);
+        ValidateCombatTarget(player, gameState, sourceId, targetId, out var source, out var target);
+
+        var attackerArmies = source.GetPropertyOrDefault("armies", 0);
+        var defenderArmies = target.GetPropertyOrDefault("armies", 0);
+        var attackerDice = new List<int>();
+        var defenderDice = new List<int>();
+        var attackerLosses = 0;
+        var defenderLosses = 0;
+
+        while (attackerArmies > 1 && defenderArmies > 0)
+        {
+            var attackerRoll = Enumerable.Range(0, Math.Min(3, attackerArmies - 1))
+                .Select(_ => Random.Shared.Next(1, 7))
+                .OrderByDescending(value => value)
+                .ToArray();
+            var defenderRoll = Enumerable.Range(0, Math.Min(3, defenderArmies))
+                .Select(_ => Random.Shared.Next(1, 7))
+                .OrderByDescending(value => value)
+                .ToArray();
+
+            attackerDice = attackerRoll.ToList();
+            defenderDice = defenderRoll.ToList();
+
+            for (var index = 0; index < Math.Min(attackerRoll.Length, defenderRoll.Length); index++)
+            {
+                if (attackerRoll[index] > defenderRoll[index])
+                {
+                    defenderArmies--;
+                    defenderLosses++;
+                }
+                else
+                {
+                    attackerArmies--;
+                    attackerLosses++;
+                }
+            }
+        }
+
+        return new CombatRollResult(
+            attackerDice,
+            defenderDice,
+            attackerLosses,
+            defenderLosses,
+            attackerArmies,
+            defenderArmies,
+            defenderArmies == 0);
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var room = rooms.RemovePlayer(Context.ConnectionId);
@@ -127,14 +188,7 @@ public sealed class GameHub(RoomStore rooms) : Hub
             throw new HubException("Combates só podem acontecer na fase de ataque.");
         }
 
-        if (!gameState.TryGetProperty("territories", out var territories)
-            || territories.ValueKind != JsonValueKind.Object
-            || !territories.TryGetProperty(sourceId, out var source)
-            || !territories.TryGetProperty(targetId, out var target))
-        {
-            throw new HubException("Origem ou alvo do combate não existe.");
-        }
-
+        ValidateCombatTarget(player, gameState, sourceId, targetId, out var source, out var target);
         var sourceOwner = source.GetPropertyOrNull("ownerId");
         var targetOwner = target.GetPropertyOrNull("ownerId");
         var sourceArmies = source.GetPropertyOrDefault("armies", 0);
@@ -176,6 +230,60 @@ public sealed class GameHub(RoomStore rooms) : Hub
         }
     }
 
+    private static void ValidateActiveTurn(JsonElement gameState, RoomPlayer player)
+    {
+        var activePlayerId = GetActivePlayerId(gameState);
+        if (!string.Equals(activePlayerId, player.PlayerId, StringComparison.Ordinal))
+        {
+            throw new HubException("Aguarde o seu turno para realizar esta ação.");
+        }
+    }
+
+    private static string? GetActivePlayerId(JsonElement gameState)
+    {
+        if (!gameState.TryGetProperty("activePlayerIndex", out var activeIndexProperty)
+            || !activeIndexProperty.TryGetInt32(out var activePlayerIndex)
+            || !gameState.TryGetProperty("players", out var playersProperty)
+            || playersProperty.ValueKind != JsonValueKind.Array)
+        {
+            throw new HubException("O estado da partida está incompleto.");
+        }
+
+        return playersProperty.EnumerateArray()
+            .ElementAtOrDefault(activePlayerIndex)
+            .GetPropertyOrNull("id");
+    }
+
+    private static void ValidateCombatTarget(
+        RoomPlayer player,
+        JsonElement gameState,
+        string sourceId,
+        string targetId,
+        out JsonElement source,
+        out JsonElement target)
+    {
+        if (!gameState.TryGetProperty("territories", out var territories)
+            || territories.ValueKind != JsonValueKind.Object
+            || !territories.TryGetProperty(sourceId, out source)
+            || !territories.TryGetProperty(targetId, out target))
+        {
+            throw new HubException("Origem ou alvo do combate não existe.");
+        }
+
+        var sourceOwner = source.GetPropertyOrNull("ownerId");
+        var targetOwner = target.GetPropertyOrNull("ownerId");
+        if (!string.Equals(sourceOwner, player.PlayerId, StringComparison.Ordinal)
+            || string.Equals(targetOwner, player.PlayerId, StringComparison.Ordinal))
+        {
+            throw new HubException("O combate usa territórios inválidos para este jogador.");
+        }
+
+        if (source.GetPropertyOrDefault("armies", 0) < 2 || target.GetPropertyOrDefault("armies", 0) < 1)
+        {
+            throw new HubException("Os territórios não têm tropas suficientes para combater.");
+        }
+    }
+
     private static string NormalizeRoomCode(string roomCode)
     {
         var code = new string((roomCode ?? string.Empty)
@@ -206,6 +314,15 @@ public sealed class GameHub(RoomStore rooms) : Hub
         throw new HubException("A sala já atingiu o limite de 6 jogadores.");
     }
 }
+
+public sealed record CombatRollResult(
+    IReadOnlyCollection<int> AttackerDice,
+    IReadOnlyCollection<int> DefenderDice,
+    int AttackerLosses,
+    int DefenderLosses,
+    int AttackerRemaining,
+    int DefenderRemaining,
+    bool Conquered);
 
 internal static class JsonElementExtensions
 {
