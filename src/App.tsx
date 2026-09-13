@@ -343,7 +343,7 @@ export default function App() {
       }).catch(error => {
         setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível enviar a jogada.');
       });
-      return;
+      if (currentPhase === 'reinforce' || currentPhase === 'attack') return;
     }
     const tState = territories[territoryId];
     if (!tState) return;
@@ -544,8 +544,22 @@ export default function App() {
   };
 
   // Maneuver Execute
-  const handleExecuteManeuver = (armiesToMove: number) => {
+  const handleExecuteManeuver = (armiesToMove: number, fromServer = false) => {
     if (!selectedTerritoryId || !targetTerritoryId) return;
+
+    if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
+      onlineClient.sendGameAction(onlineRoom.code, {
+        type: 'maneuver',
+        payload: {
+          sourceId: selectedTerritoryId,
+          targetId: targetTerritoryId,
+          armies: armiesToMove
+        }
+      }).catch(error => {
+        setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível remanejar tropas.');
+      });
+      return;
+    }
 
     setTerritories(prev => ({
       ...prev,
@@ -679,7 +693,7 @@ export default function App() {
 
     const removeHandler = onlineClient.onGameAction((_, rawAction) => {
       if (!rawAction || typeof rawAction !== 'object') return;
-      const action = rawAction as { type?: string; payload?: { territoryId?: string; cardId?: string } };
+      const action = rawAction as { type?: string; payload?: { territoryId?: string; cardId?: string; armies?: number } };
 
       if (action.type === 'select-territory' && action.payload?.territoryId) {
         handleSelectTerritory(action.payload.territoryId, true);
@@ -690,6 +704,8 @@ export default function App() {
         if (card && activePlayer?.tacticalCards.includes(card.id)) {
           handleUseTacticalAction(card, true);
         }
+      } else if (action.type === 'maneuver' && action.payload?.armies) {
+        handleExecuteManeuver(action.payload.armies, true);
       }
     });
 
