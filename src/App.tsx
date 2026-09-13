@@ -92,6 +92,9 @@ export default function App() {
 
   const activePlayer = players[activePlayerIndex] || null;
   const isOnlineTurn = !onlinePlayerId || activePlayer?.id === onlinePlayerId;
+  const isOnlineHost = Boolean(
+    onlineClient && onlineRoom && onlineClient.getConnectionId() === onlineRoom.hostConnectionId
+  );
 
   const applyOnlineGameState = useCallback((rawState: unknown) => {
     if (!rawState || typeof rawState !== 'object') return;
@@ -331,8 +334,17 @@ export default function App() {
   }, [activeMechanics.fogOfWar, activePlayer, territories]);
 
   // Handle Territory Click
-  const handleSelectTerritory = (territoryId: string) => {
-    if (!activePlayer || activePlayer.isAI || !isOnlineTurn) return;
+  const handleSelectTerritory = (territoryId: string, fromServer = false) => {
+    if (!activePlayer || activePlayer.isAI || (!fromServer && !isOnlineTurn)) return;
+    if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
+      onlineClient.sendGameAction(onlineRoom.code, {
+        type: 'select-territory',
+        payload: { territoryId }
+      }).catch(error => {
+        setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível enviar a jogada.');
+      });
+      return;
+    }
     const tState = territories[territoryId];
     if (!tState) return;
 
@@ -577,7 +589,17 @@ export default function App() {
   };
 
   // Next Phase Handler
-  const handleNextPhase = useCallback(() => {
+  const handleNextPhase = useCallback((fromServer = false) => {
+    if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
+      onlineClient.sendGameAction(onlineRoom.code, {
+        type: 'next-phase',
+        payload: {}
+      }).catch(error => {
+        setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível avançar a fase.');
+      });
+      return;
+    }
+
     warAudio.playClick();
     setSelectedTerritoryId(null);
     setTargetTerritoryId(null);
@@ -644,10 +666,30 @@ export default function App() {
     players,
     territories,
     activeMechanics.globalEvents,
+    onlineClient,
+    onlineRoom,
+    isOnlineHost,
     calculateReinforcements,
     checkVictory,
     addLog
   ]);
+
+  useEffect(() => {
+    if (!onlineClient || !onlineRoom || !isOnlineHost) return;
+
+    const removeHandler = onlineClient.onGameAction((_, rawAction) => {
+      if (!rawAction || typeof rawAction !== 'object') return;
+      const action = rawAction as { type?: string; payload?: { territoryId?: string } };
+
+      if (action.type === 'select-territory' && action.payload?.territoryId) {
+        handleSelectTerritory(action.payload.territoryId, true);
+      } else if (action.type === 'next-phase') {
+        handleNextPhase(true);
+      }
+    });
+
+    return removeHandler;
+  }, [onlineClient, onlineRoom, isOnlineHost, handleNextPhase]);
 
   // AI Turn Logic Automator
   useEffect(() => {

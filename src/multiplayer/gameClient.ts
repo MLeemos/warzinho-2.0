@@ -48,8 +48,9 @@ export class GameClient {
     this.connection.on('RoomUpdated', handler);
   }
 
-  onGameAction(handler: (connectionId: string, action: unknown) => void): void {
+  onGameAction(handler: (connectionId: string, action: unknown) => void): () => void {
     this.connection.on('GameActionReceived', handler);
+    return () => this.connection.off('GameActionReceived', handler);
   }
 
   onGameStateUpdated(handler: (state: unknown) => void): void {
