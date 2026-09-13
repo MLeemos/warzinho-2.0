@@ -69,4 +69,4 @@ npm run build
 
 ## Repositório
 
-O projeto está publicado como repositório público em [MLeemos/war-2.0](https://github.com/MLeemos/war-2.0). A versão atual dos arquivos está no branch [`local-project-import`](https://github.com/MLeemos/war-2.0/tree/local-project-import).
+O projeto está publicado como repositório público em [MLeemos/warzinho-2.0](https://github.com/MLeemos/warzinho-2.0). A versão atual dos arquivos está no branch [`local-project-import`](https://github.com/MLeemos/warzinho-2.0/tree/local-project-import).
