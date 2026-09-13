@@ -111,15 +111,13 @@ O projeto agora possui a base de um servidor multiplayer em C# com ASP.NET Core 
 - Assentos individuais de `p_1` a `p_6` para as conexões da sala.
 - Uso dos nomes conectados ao iniciar a partida online.
 - Transferência de ações para todos os participantes.
-- Publicação do estado da partida pelo anfitrião.
+- Publicação do estado compartilhado por qualquer jogador conectado.
+- Cada jogador controla seu próprio exército e sua própria fase online; o anfitrião só inicia a sala no lobby.
 - Recebimento de jogadores e estado completo pelo cliente React.
 - Sincronização de territórios, jogadores, rodada, fase, reserva, cartas, eventos e diário.
-- Bloqueio de ações locais quando não é o turno do jogador conectado.
-- Validação no hub para aceitar apenas ações conhecidas e do jogador ativo.
-- Seleção de territórios e avanço de fase dos jogadores remotos encaminhados ao anfitrião.
-- Uso de cartas táticas remotas encaminhado ao anfitrião antes da aplicação.
-- Remanejamento remoto com escolha da quantidade de tropas encaminhado ao anfitrião.
-- Combate remoto com resultado de dados, baixas, conquista e avanço encaminhado ao anfitrião.
+- Fases locais independentes para cada jogador online.
+- Validação no hub para aceitar ações conhecidas e pertencentes ao jogador que as envia.
+- Seleção de territórios, cartas, remanejamentos e combates aplicados pelo próprio jogador.
 - Início da partida online restrito ao anfitrião, usando somente os jogadores conectados.
 - Validação server-side de origem, alvo, fase, baixas, conquista e tropas avançadas.
 - Rolagem completa de combate executada no servidor C# quando a partida está online.
@@ -220,7 +218,7 @@ Configure `GEMINI_API_KEY` em `.env.local` usando [.env.example](.env.example) c
 
 3. Abra `http://localhost:3000` em duas janelas ou dispositivos da mesma rede e use o mesmo código de sala.
 
-O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes, permite iniciar a partida somente ao anfitrião quando há pelo menos duas pessoas e coloca os demais jogadores em espera pelo estado inicial. Seleções de território, avanço de fase, uso de cartas táticas, remanejamentos e resultados de combate remotos passam pelo servidor e são aplicados pelo anfitrião antes da sincronização. O servidor rejeita ações desconhecidas, jogadores que não pertencem à sala, ações fora do turno, resultados de combate impossíveis e cartas táticas que não estejam disponíveis ou não atendam aos requisitos. Em partidas online, a rolagem completa, as perdas, a sessão de combate até o avanço, a validação inicial das cartas, o efeito de Fortaleza e a preparação e finalização do Ataque Aéreo já são controlados pelo servidor; a próxima etapa é aplicar no servidor os efeitos restantes das cartas táticas.
+O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes e permite iniciar a partida somente ao anfitrião no lobby. Depois do início, todos os jogadores são equivalentes: cada um controla seu exército, posicionamento, ataque, remanejamento e avanço de fase sem esperar a vez global dos demais. O estado territorial continua compartilhado entre todos, enquanto a fase e a reserva de cada jogador são mantidas localmente para evitar que um jogador sobrescreva a fase do outro.
 
 ## Atualizações recentes
 

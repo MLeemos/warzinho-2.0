@@ -81,6 +81,8 @@ export default function App() {
   const [onlineRoom, setOnlineRoom] = useState<OnlineRoomSnapshot | null>(null);
   const [onlinePlayerId, setOnlinePlayerId] = useState<string | null>(null);
   const [onlineStatus, setOnlineStatus] = useState('');
+  const onlineModeRef = React.useRef(false);
+  const applyingOnlineStateRef = React.useRef(false);
 
   // Tactical Action Mode (e.g. Air strike selection)
   const [tacticalTargetMode, setTacticalTargetMode] = useState<'air_strike' | 'fortify' | null>(null);
@@ -91,8 +93,10 @@ export default function App() {
     combatArmies: number;
   } | null>(null);
 
-  const activePlayer = players[activePlayerIndex] || null;
-  const isOnlineTurn = !onlinePlayerId || activePlayer?.id === onlinePlayerId;
+  const activePlayer = onlineRoom
+    ? players.find(player => player.id === onlinePlayerId) || players[activePlayerIndex] || null
+    : players[activePlayerIndex] || null;
+  const isOnlineTurn = true;
   const isOnlineHost = Boolean(
     onlineClient && onlineRoom && onlineClient.getConnectionId() === onlineRoom.hostConnectionId
   );
@@ -101,24 +105,26 @@ export default function App() {
     if (!rawState || typeof rawState !== 'object') return;
     const state = rawState as Partial<OnlineGameState>;
     if (!state.players || !state.territories || !state.currentPhase) return;
+    applyingOnlineStateRef.current = true;
 
     setPlayers(state.players);
     setActiveMechanics(state.activeMechanics ?? DEFAULT_MECHANICS);
     setActivePlayerIndex(state.activePlayerIndex ?? 0);
     setCurrentRound(state.currentRound ?? 1);
-    setCurrentPhase(state.currentPhase);
+    if (!onlineModeRef.current) setCurrentPhase(state.currentPhase);
     setTerritories(state.territories);
-    setReserveArmies(state.reserveArmies ?? 0);
+    if (!onlineModeRef.current) setReserveArmies(state.reserveArmies ?? 0);
     setCardTradeCount(state.cardTradeCount ?? 0);
-    setConqueredThisTurn(state.conqueredThisTurn ?? false);
+    if (!onlineModeRef.current) setConqueredThisTurn(state.conqueredThisTurn ?? false);
     setGameLogs(state.gameLogs ?? []);
     setActiveGlobalEvent(state.activeGlobalEvent ?? null);
     setInGame(true);
-  }, []);
+  }, [onlineRoom]);
 
   const handleJoinOnlineRoom = async (roomCode: string, playerName: string) => {
     try {
       const client = onlineClient || new GameClient();
+      onlineModeRef.current = true;
       client.onRoomUpdated(setOnlineRoom);
       client.onGameStateUpdated(applyOnlineGameState);
       const room = await client.joinRoom(roomCode, playerName);
@@ -126,8 +132,18 @@ export default function App() {
       setOnlineRoom(room);
       const joinedPlayer = room.players.find(player => player.connectionId === client.getConnectionId());
       setOnlinePlayerId(joinedPlayer?.playerId || null);
-      if (room.gameState) applyOnlineGameState(room.gameState);
-      setOnlineStatus('Conectado à sala. O estado da partida será compartilhado pelo anfitrião.');
+      if (room.gameState) {
+        applyOnlineGameState(room.gameState);
+        const sharedState = room.gameState as Partial<OnlineGameState>;
+        const ownedTerritories = Object.values(sharedState.territories || {})
+          .filter(territory => territory.ownerId === joinedPlayer?.playerId).length;
+        setCurrentPhase('reinforce');
+        setReserveArmies(Math.max(
+          sharedState.activeMechanics?.minArmiesPlacement ?? DEFAULT_MECHANICS.minArmiesPlacement,
+          Math.floor(ownedTerritories / 2)
+        ));
+      }
+      setOnlineStatus('Conectado à sala. O estado territorial será compartilhado entre os jogadores.');
     } catch (error) {
       setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível conectar à sala.');
     }
@@ -145,8 +161,10 @@ export default function App() {
 
   useEffect(() => {
     if (!inGame || !onlineClient || !onlineRoom) return;
-    if (onlineClient.getConnectionId() !== onlineRoom.hostConnectionId) return;
-
+    if (applyingOnlineStateRef.current) {
+      applyingOnlineStateRef.current = false;
+      return;
+    }
     const state: OnlineGameState = {
       players,
       activeMechanics,
@@ -350,14 +368,13 @@ export default function App() {
   // Handle Territory Click
   const handleSelectTerritory = (territoryId: string, fromServer = false) => {
     if (!activePlayer || activePlayer.isAI || (!fromServer && !isOnlineTurn)) return;
-    if (onlineClient && onlineRoom && !tacticalTargetMode && !isOnlineHost && !fromServer) {
+    if (onlineClient && onlineRoom && !tacticalTargetMode && !fromServer) {
       onlineClient.sendGameAction(onlineRoom.code, {
         type: 'select-territory',
         payload: { territoryId }
       }).catch(error => {
         setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível enviar a jogada.');
       });
-      if (currentPhase === 'reinforce') return;
     }
     const tState = territories[territoryId];
     if (!tState) return;
@@ -473,7 +490,7 @@ export default function App() {
       return;
     }
 
-    if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
+    if (onlineClient && onlineRoom && !fromServer) {
       onlineClient.sendGameAction(onlineRoom.code, {
         type: 'resolve-combat',
         payload: {
@@ -484,9 +501,6 @@ export default function App() {
       }).catch(error => {
         setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível enviar o resultado do combate.');
       });
-      setIsCombatModalOpen(false);
-      setTargetTerritoryId(null);
-      return;
     }
 
     const defenderPlayer = players.find(p => p.id === territories[targetTerritoryId].ownerId);
@@ -597,7 +611,7 @@ export default function App() {
   const handleExecuteManeuver = (armiesToMove: number, fromServer = false) => {
     if (!selectedTerritoryId || !targetTerritoryId) return;
 
-    if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
+    if (onlineClient && onlineRoom && !fromServer) {
       onlineClient.sendGameAction(onlineRoom.code, {
         type: 'maneuver',
         payload: {
@@ -608,7 +622,6 @@ export default function App() {
       }).catch(error => {
         setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível remanejar tropas.');
       });
-      return;
     }
 
     setTerritories(prev => ({
@@ -654,14 +667,13 @@ export default function App() {
 
   // Next Phase Handler
   const handleNextPhase = useCallback((fromServer = false) => {
-    if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
+    if (onlineClient && onlineRoom && !fromServer) {
       onlineClient.sendGameAction(onlineRoom.code, {
         type: 'next-phase',
         payload: {}
       }).catch(error => {
         setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível avançar a fase.');
       });
-      return;
     }
 
     warAudio.playClick();
@@ -675,6 +687,14 @@ export default function App() {
       setCurrentPhase('maneuver');
       addLog(`General ${activePlayer.name} iniciou o Remanejamento.`, 'mechanic');
     } else if (currentPhase === 'maneuver') {
+      if (onlineRoom) {
+        setCurrentPhase('reinforce');
+        setConqueredThisTurn(false);
+        setReserveArmies(calculateReinforcements(activePlayer, territories));
+        addLog(`General ${activePlayer.name} iniciou uma nova fase de posicionamento.`, 'reinforce');
+        return;
+      }
+
       // End turn
       // 1. Draw card if conquered territory
       if (conqueredThisTurn) {
@@ -732,59 +752,10 @@ export default function App() {
     activeMechanics.globalEvents,
     onlineClient,
     onlineRoom,
-    isOnlineHost,
     calculateReinforcements,
     checkVictory,
     addLog
   ]);
-
-  useEffect(() => {
-    if (!onlineClient || !onlineRoom || !isOnlineHost) return;
-
-    const removeHandler = onlineClient.onGameAction((_, rawAction) => {
-      if (!rawAction || typeof rawAction !== 'object') return;
-      const action = rawAction as {
-        type?: string;
-        payload?: {
-          territoryId?: string;
-          cardId?: string;
-          armies?: number;
-          attackerRemaining?: number;
-          defenderRemaining?: number;
-          conquered?: boolean;
-          movedArmies?: number;
-        }
-      };
-
-      if (action.type === 'select-territory' && action.payload?.territoryId) {
-        handleSelectTerritory(action.payload.territoryId, true);
-      } else if (action.type === 'next-phase') {
-        handleNextPhase(true);
-      } else if (action.type === 'use-card' && action.payload?.cardId) {
-        const card = TACTICAL_CARDS.find(candidate => candidate.id === action.payload?.cardId);
-        if (card && activePlayer?.tacticalCards.includes(card.id)) {
-          handleUseTacticalAction(card, true);
-        }
-      } else if (action.type === 'maneuver' && action.payload?.armies) {
-        handleExecuteManeuver(action.payload.armies, true);
-      } else if (
-        action.type === 'resolve-combat'
-        && typeof action.payload?.attackerRemaining === 'number'
-        && typeof action.payload.defenderRemaining === 'number'
-        && typeof action.payload.conquered === 'boolean'
-        && typeof action.payload.movedArmies === 'number'
-      ) {
-        handleResolveCombat({
-          attackerRemaining: action.payload.attackerRemaining,
-          defenderRemaining: action.payload.defenderRemaining,
-          conquered: action.payload.conquered,
-          movedArmies: action.payload.movedArmies
-        }, true);
-      }
-    });
-
-    return removeHandler;
-  }, [onlineClient, onlineRoom, isOnlineHost, activePlayer, handleNextPhase, handleResolveCombat, handleExecuteManeuver]);
 
   // AI Turn Logic Automator
   useEffect(() => {
@@ -867,16 +838,13 @@ export default function App() {
       }).catch(error => {
         setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível usar a carta.');
       });
-      if (!isOnlineHost) return;
     }
 
-    if (!onlineClient || !onlineRoom) {
-      setPlayers(prev => prev.map(player => (
-        player.id === activePlayer.id
-          ? { ...player, tacticalCards: player.tacticalCards.filter(cardId => cardId !== card.id) }
-          : player
-      )));
-    }
+    setPlayers(prev => prev.map(player => (
+      player.id === activePlayer.id
+        ? { ...player, tacticalCards: player.tacticalCards.filter(cardId => cardId !== card.id) }
+        : player
+    )));
 
     setTacticalTargetMode('air_strike');
     addLog(`✈️ ${card.name} utilizada: selecione um território seu com pelo menos 20 tropas.`, 'mechanic');

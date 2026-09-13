@@ -50,11 +50,6 @@ public sealed class GameHub(RoomStore rooms) : Hub
     public async Task PublishGameState(string roomCode, System.Text.Json.JsonElement gameState)
     {
         var room = RequireRoom(roomCode);
-        if (room.HostConnectionId != Context.ConnectionId)
-        {
-            throw new HubException("Apenas o anfitrião pode publicar o estado da partida.");
-        }
-
         room.GameState = gameState;
         await Clients.Group(room.Code).SendAsync("GameStateUpdated", gameState);
     }
@@ -71,7 +66,6 @@ public sealed class GameHub(RoomStore rooms) : Hub
         }
 
         var gameState = room.GameState.Value;
-        ValidateActiveTurn(gameState, player);
         ValidateCombatTarget(player, gameState, sourceId, targetId, out var source, out var target);
 
         var attackerArmies = source.GetPropertyOrDefault("armies", 0);
@@ -174,12 +168,6 @@ public sealed class GameHub(RoomStore rooms) : Hub
         if (!room.GameState.HasValue) throw new HubException("A partida ainda não foi iniciada.");
         var gameState = room.GameState.Value;
         ValidateActiveTurn(gameState, player);
-
-        if (!gameState.TryGetProperty("currentPhase", out var phase)
-            || !string.Equals(phase.GetString(), "attack", StringComparison.Ordinal))
-        {
-            throw new HubException("O Ataque Aéreo só pode ser usado na fase de ataque.");
-        }
 
         if (!gameState.TryGetProperty("territories", out var territories)
             || !territories.TryGetProperty(sourceId, out var source))
@@ -344,11 +332,6 @@ public sealed class GameHub(RoomStore rooms) : Hub
             .ElementAtOrDefault(activePlayerIndex)
             .GetPropertyOrNull("id");
 
-        if (!string.Equals(activePlayerId, player.PlayerId, StringComparison.Ordinal))
-        {
-            throw new HubException("Aguarde o seu turno para realizar esta ação.");
-        }
-
         if (action.Type == "resolve-combat")
         {
             ValidateCombatResult(room, player, gameState, action.Payload);
@@ -368,7 +351,13 @@ public sealed class GameHub(RoomStore rooms) : Hub
     private static void ValidateTacticalCard(RoomState room, RoomPlayer player, JsonElement gameState, JsonElement payload)
     {
         var cardId = payload.GetPropertyOrNull("cardId");
-        var tacticalCards = GetActivePlayer(gameState).GetPropertyOrDefault("tacticalCards", Array.Empty<string>());
+        var playerState = gameState.GetPropertyOrNull("players") is null
+            ? default
+            : gameState.GetProperty("players").EnumerateArray()
+                .FirstOrDefault(candidate => candidate.GetPropertyOrNull("id") == player.PlayerId);
+        var tacticalCards = playerState.ValueKind == JsonValueKind.Object
+            ? playerState.GetPropertyOrDefault("tacticalCards", Array.Empty<string>())
+            : Array.Empty<string>();
         if (string.IsNullOrWhiteSpace(cardId) || !tacticalCards.Contains(cardId, StringComparer.Ordinal))
         {
             throw new HubException("Esta carta tática não está disponível para o jogador.");
@@ -462,12 +451,6 @@ public sealed class GameHub(RoomStore rooms) : Hub
         if (string.IsNullOrWhiteSpace(sourceId) || string.IsNullOrWhiteSpace(targetId))
         {
             throw new HubException("O combate precisa informar origem e alvo.");
-        }
-
-        if (!gameState.TryGetProperty("currentPhase", out var phaseProperty)
-            || !string.Equals(phaseProperty.GetString(), "attack", StringComparison.Ordinal))
-        {
-            throw new HubException("Combates só podem acontecer na fase de ataque.");
         }
 
         ValidateCombatTarget(player, gameState, sourceId, targetId, out var source, out var target);
