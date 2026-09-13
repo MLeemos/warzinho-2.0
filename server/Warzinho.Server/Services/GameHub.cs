@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.SignalR;
 using Warzinho.Server.Models;
 
@@ -125,6 +126,43 @@ public sealed class GameHub(RoomStore rooms) : Hub
             attackerArmies,
             defenderArmies,
             defenderArmies == 0);
+    }
+
+    public async Task<JsonElement> ResolveFortification(string roomCode, string territoryId)
+    {
+        var room = RequireRoom(roomCode);
+        var player = room.Players.GetValueOrDefault(Context.ConnectionId)
+            ?? throw new HubException("Você não está conectado a esta sala.");
+        var session = room.ActiveTacticalAction;
+
+        if (session is null || session.CardId != "tac_fortify" || session.PlayerId != player.PlayerId)
+        {
+            throw new HubException("Nenhuma Fortaleza está aguardando um território.");
+        }
+
+        if (!room.GameState.HasValue)
+        {
+            throw new HubException("A partida ainda não foi iniciada.");
+        }
+
+        var root = JsonNode.Parse(room.GameState.Value.GetRawText())?.AsObject()
+            ?? throw new HubException("O estado da partida está inválido.");
+        var territories = root["territories"]?.AsObject()
+            ?? throw new HubException("Os territórios não foram encontrados.");
+        var territory = territories[territoryId]?.AsObject()
+            ?? throw new HubException("Território não encontrado.");
+
+        if (!string.Equals(territory["ownerId"]?.GetValue<string>(), player.PlayerId, StringComparison.Ordinal))
+        {
+            throw new HubException("A Fortaleza só pode ser construída em território próprio.");
+        }
+
+        territory["fortified"] = true;
+        RemoveTacticalCard(root, player.PlayerId, "tac_fortify");
+        room.GameState = JsonSerializer.Deserialize<JsonElement>(root.ToJsonString());
+        room.ActiveTacticalAction = null;
+        await Clients.Group(room.Code).SendAsync("GameStateUpdated", room.GameState.Value);
+        return room.GameState.Value;
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
@@ -276,6 +314,26 @@ public sealed class GameHub(RoomStore rooms) : Hub
         else if (session.CardId == "tac_fortify")
         {
             session.TargetId = territoryId;
+        }
+    }
+
+    private static void RemoveTacticalCard(JsonObject root, string playerId, string cardId)
+    {
+        if (root["players"] is not JsonArray players) return;
+
+        foreach (var playerNode in players.OfType<JsonObject>())
+        {
+            if (!string.Equals(playerNode["id"]?.GetValue<string>(), playerId, StringComparison.Ordinal)) continue;
+            if (playerNode["tacticalCards"] is not JsonArray cards) return;
+
+            for (var index = cards.Count - 1; index >= 0; index--)
+            {
+                if (string.Equals(cards[index]?.GetValue<string>(), cardId, StringComparison.Ordinal))
+                {
+                    cards.RemoveAt(index);
+                    return;
+                }
+            }
         }
     }
 

@@ -79,6 +79,10 @@ export class GameClient {
     return this.connection.invoke<CombatRollResult>('RollCombat', roomCode, sourceId, targetId);
   }
 
+  async resolveFortification(roomCode: string, territoryId: string): Promise<unknown> {
+    return this.connection.invoke('ResolveFortification', roomCode, territoryId);
+  }
+
   async disconnect(): Promise<void> {
     await this.connection.stop();
   }

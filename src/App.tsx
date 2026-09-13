@@ -346,7 +346,7 @@ export default function App() {
   // Handle Territory Click
   const handleSelectTerritory = (territoryId: string, fromServer = false) => {
     if (!activePlayer || activePlayer.isAI || (!fromServer && !isOnlineTurn)) return;
-    if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
+    if (onlineClient && onlineRoom && !tacticalTargetMode && !isOnlineHost && !fromServer) {
       onlineClient.sendGameAction(onlineRoom.code, {
         type: 'select-territory',
         payload: { territoryId }
@@ -375,6 +375,14 @@ export default function App() {
 
     if (tacticalTargetMode === 'fortify') {
       if (tState.ownerId === activePlayer.id) {
+        if (onlineClient && onlineRoom) {
+          onlineClient.resolveFortification(onlineRoom.code, territoryId).catch(error => {
+            setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível construir a Fortaleza.');
+          });
+          setTacticalTargetMode(null);
+          setSelectedTerritoryId(null);
+          return;
+        }
         warAudio.playCard();
         setTerritories(prev => ({
           ...prev,
@@ -846,11 +854,13 @@ export default function App() {
       return;
     }
 
-    setPlayers(prev => prev.map(player => (
-      player.id === activePlayer.id
-        ? { ...player, tacticalCards: player.tacticalCards.filter(cardId => cardId !== card.id) }
-        : player
-    )));
+    if (!onlineClient || !onlineRoom) {
+      setPlayers(prev => prev.map(player => (
+        player.id === activePlayer.id
+          ? { ...player, tacticalCards: player.tacticalCards.filter(cardId => cardId !== card.id) }
+          : player
+      )));
+    }
 
     if (card.effect === 'air_strike') {
       setTacticalTargetMode('air_strike');
