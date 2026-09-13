@@ -881,7 +881,7 @@ export default function App() {
     }
   };
 
-  const confirmAirStrike = () => {
+  const confirmAirStrike = async () => {
     if (!airStrikeSetup || !activePlayer) return;
 
     const source = territories[airStrikeSetup.sourceId];
@@ -891,6 +891,29 @@ export default function App() {
       source.armies,
       Math.max(20, Math.floor(airStrikeSetup.armies))
     );
+
+    if (onlineClient && onlineRoom) {
+      try {
+        const plan = await onlineClient.prepareAirStrike(onlineRoom.code, source.id, committedArmies);
+        setAirStrikePlan({
+          sourceId: source.id,
+          committedArmies: plan.committedArmies,
+          combatArmies: plan.combatArmies
+        });
+        setTargetTerritoryId(plan.targetId);
+        setAirStrikeSetup(null);
+        setTacticalTargetMode(null);
+        setIsCombatModalOpen(true);
+        addLog(
+          `✈️ Ataque Aéreo preparado pelo servidor: ${plan.committedArmies} tropas (${plan.costArmies} de custo). Alvo: ${TERRITORIES[plan.targetId].name}.`,
+          'mechanic'
+        );
+      } catch (error) {
+        setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível preparar o Ataque Aéreo.');
+      }
+      return;
+    }
+
     const costArmies = Math.floor(committedArmies / 2);
     const combatArmies = committedArmies - costArmies;
     const possibleTargets = (Object.values(territories) as TerritoryState[])

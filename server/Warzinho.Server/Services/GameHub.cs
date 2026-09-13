@@ -165,6 +165,77 @@ public sealed class GameHub(RoomStore rooms) : Hub
         return room.GameState.Value;
     }
 
+    public Task<AirStrikePlan> PrepareAirStrike(string roomCode, string sourceId, int committedArmies)
+    {
+        var room = RequireRoom(roomCode);
+        var player = room.Players.GetValueOrDefault(Context.ConnectionId)
+            ?? throw new HubException("Você não está conectado a esta sala.");
+
+        if (!room.GameState.HasValue) throw new HubException("A partida ainda não foi iniciada.");
+        var gameState = room.GameState.Value;
+        ValidateActiveTurn(gameState, player);
+
+        if (!gameState.TryGetProperty("currentPhase", out var phase)
+            || !string.Equals(phase.GetString(), "attack", StringComparison.Ordinal))
+        {
+            throw new HubException("O Ataque Aéreo só pode ser usado na fase de ataque.");
+        }
+
+        if (!gameState.TryGetProperty("territories", out var territories)
+            || !territories.TryGetProperty(sourceId, out var source))
+        {
+            throw new HubException("Território de lançamento não encontrado.");
+        }
+
+        var sourceOwner = source.GetPropertyOrNull("ownerId");
+        var sourceArmies = source.GetPropertyOrDefault("armies", 0);
+        if (sourceOwner != player.PlayerId || sourceArmies < 20)
+        {
+            throw new HubException("O Ataque Aéreo exige ao menos 20 tropas em território próprio.");
+        }
+
+        if (committedArmies < 20 || committedArmies > sourceArmies)
+        {
+            throw new HubException("A quantidade de tropas do Ataque Aéreo é inválida.");
+        }
+
+        var enemyTerritories = territories.EnumerateObject()
+            .Where(entry => entry.Value.GetPropertyOrNull("ownerId") != player.PlayerId)
+            .Select(entry => entry.Name)
+            .ToArray();
+        if (enemyTerritories.Length == 0) throw new HubException("Não há território inimigo disponível.");
+
+        var targetId = enemyTerritories[Random.Shared.Next(enemyTerritories.Length)];
+        var costArmies = committedArmies / 2;
+        room.ActiveTacticalAction = new TacticalSession
+        {
+            PlayerId = player.PlayerId,
+            CardId = "tac_air_strike",
+            SourceId = sourceId,
+            TargetId = targetId,
+            CommittedArmies = committedArmies,
+            CombatArmies = committedArmies - costArmies
+        };
+
+        return Task.FromResult(new AirStrikePlan(targetId, committedArmies, costArmies, committedArmies - costArmies));
+    }
+
+    public Task<AirStrikePlan> GetAirStrikePlan(string roomCode)
+    {
+        var room = RequireRoom(roomCode);
+        var session = room.ActiveTacticalAction;
+        if (session is null || session.CardId != "tac_air_strike" || session.TargetId is null)
+        {
+            throw new HubException("Nenhum Ataque Aéreo está preparado.");
+        }
+
+        return Task.FromResult(new AirStrikePlan(
+            session.TargetId,
+            session.CommittedArmies,
+            session.CommittedArmies - session.CombatArmies,
+            session.CombatArmies));
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var room = rooms.RemovePlayer(Context.ConnectionId);
@@ -515,6 +586,12 @@ public sealed record CombatRollResult(
     int AttackerRemaining,
     int DefenderRemaining,
     bool Conquered);
+
+public sealed record AirStrikePlan(
+    string TargetId,
+    int CommittedArmies,
+    int CostArmies,
+    int CombatArmies);
 
 internal static class JsonElementExtensions
 {

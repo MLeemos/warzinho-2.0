@@ -129,6 +129,7 @@ O projeto agora possui a base de um servidor multiplayer em C# com ASP.NET Core 
 - Sessão de combate persistida no servidor até a escolha do avanço.
 - Sessões táticas no servidor para validar cartas disponíveis, origem e alvo.
 - Efeito de Fortaleza aplicado no servidor, com consumo da carta e sincronização do território.
+- Preparação do Ataque Aéreo aplicada no servidor, com mínimo de 20 tropas, custo de metade e alvo aleatório.
 
 Para executar o servidor localmente:
 
@@ -221,7 +222,7 @@ Configure `GEMINI_API_KEY` em `.env.local` usando [.env.example](.env.example) c
 
 3. Abra `http://localhost:3000` em duas janelas ou dispositivos da mesma rede e use o mesmo código de sala.
 
-O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes, recebe o estado completo publicado pelo anfitrião e bloqueia ações fora do turno. Seleções de território, avanço de fase, uso de cartas táticas, remanejamentos e resultados de combate remotos passam pelo servidor e são aplicados pelo anfitrião antes da sincronização. O servidor rejeita ações desconhecidas, jogadores que não pertencem à sala, ações fora do turno, resultados de combate impossíveis e cartas táticas que não estejam disponíveis ou não atendam aos requisitos. Em partidas online, a rolagem completa, as perdas, a sessão de combate até o avanço, a validação inicial das cartas e o efeito de Fortaleza já são controlados pelo servidor; a próxima etapa é mover o Ataque Aéreo e os demais efeitos de cartas para essa autoridade.
+O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes, recebe o estado completo publicado pelo anfitrião e bloqueia ações fora do turno. Seleções de território, avanço de fase, uso de cartas táticas, remanejamentos e resultados de combate remotos passam pelo servidor e são aplicados pelo anfitrião antes da sincronização. O servidor rejeita ações desconhecidas, jogadores que não pertencem à sala, ações fora do turno, resultados de combate impossíveis e cartas táticas que não estejam disponíveis ou não atendam aos requisitos. Em partidas online, a rolagem completa, as perdas, a sessão de combate até o avanço, a validação inicial das cartas, o efeito de Fortaleza e a preparação do Ataque Aéreo já são controlados pelo servidor; a próxima etapa é aplicar no servidor a ocupação e o consumo final da carta após a resolução aérea.
 
 ## Atualizações recentes
 

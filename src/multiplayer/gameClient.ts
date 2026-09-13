@@ -28,6 +28,13 @@ export interface CombatRollResult {
   conquered: boolean;
 }
 
+export interface AirStrikePlan {
+  targetId: string;
+  committedArmies: number;
+  costArmies: number;
+  combatArmies: number;
+}
+
 export class GameClient {
   private readonly connection: HubConnection;
 
@@ -81,6 +88,10 @@ export class GameClient {
 
   async resolveFortification(roomCode: string, territoryId: string): Promise<unknown> {
     return this.connection.invoke('ResolveFortification', roomCode, territoryId);
+  }
+
+  async prepareAirStrike(roomCode: string, sourceId: string, committedArmies: number): Promise<AirStrikePlan> {
+    return this.connection.invoke<AirStrikePlan>('PrepareAirStrike', roomCode, sourceId, committedArmies);
   }
 
   async disconnect(): Promise<void> {

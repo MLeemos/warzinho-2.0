@@ -48,4 +48,6 @@ public sealed class TacticalSession
     public string CardId { get; init; } = string.Empty;
     public string? SourceId { get; set; }
     public string? TargetId { get; set; }
+    public int CommittedArmies { get; set; }
+    public int CombatArmies { get; set; }
 }
