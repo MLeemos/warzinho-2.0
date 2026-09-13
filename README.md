@@ -123,6 +123,7 @@ O projeto agora possui a base de um servidor multiplayer em C# com ASP.NET Core 
 - Seleção de territórios e avanço de fase dos jogadores remotos encaminhados ao anfitrião.
 - Uso de cartas táticas remotas encaminhado ao anfitrião antes da aplicação.
 - Remanejamento remoto com escolha da quantidade de tropas encaminhado ao anfitrião.
+- Combate remoto com resultado de dados, baixas, conquista e avanço encaminhado ao anfitrião.
 
 Para executar o servidor localmente:
 
@@ -215,7 +216,7 @@ Configure `GEMINI_API_KEY` em `.env.local` usando [.env.example](.env.example) c
 
 3. Abra `http://localhost:3000` em duas janelas ou dispositivos da mesma rede e use o mesmo código de sala.
 
-O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes, recebe o estado completo publicado pelo anfitrião e bloqueia ações fora do turno. Seleções de território, avanço de fase, uso de cartas táticas e remanejamentos remotos passam pelo servidor e são aplicados pelo anfitrião antes da sincronização. O servidor também rejeita ações desconhecidas, jogadores que não pertencem à sala e ações enviadas fora do turno. A próxima etapa é aplicar as regras detalhadas de território, dados, cartas e conquista dentro do servidor.
+O cliente já conecta os jogadores ao hub SignalR, atribui assentos, exibe a quantidade de participantes, recebe o estado completo publicado pelo anfitrião e bloqueia ações fora do turno. Seleções de território, avanço de fase, uso de cartas táticas, remanejamentos e resultados de combate remotos passam pelo servidor e são aplicados pelo anfitrião antes da sincronização. O servidor também rejeita ações desconhecidas, jogadores que não pertencem à sala e ações enviadas fora do turno. A próxima etapa é aplicar as regras detalhadas de território, dados, cartas e conquista dentro do servidor.
 
 ## Atualizações recentes
 

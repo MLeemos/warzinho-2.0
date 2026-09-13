@@ -343,7 +343,7 @@ export default function App() {
       }).catch(error => {
         setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível enviar a jogada.');
       });
-      if (currentPhase === 'reinforce' || currentPhase === 'attack') return;
+      if (currentPhase === 'reinforce') return;
     }
     const tState = territories[territoryId];
     if (!tState) return;
@@ -435,8 +435,20 @@ export default function App() {
     defenderRemaining: number;
     conquered: boolean;
     movedArmies: number;
-  }) => {
+  }, fromServer = false) => {
     if (!selectedTerritoryId || !targetTerritoryId || !activePlayer) return;
+
+    if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
+      onlineClient.sendGameAction(onlineRoom.code, {
+        type: 'resolve-combat',
+        payload: result
+      }).catch(error => {
+        setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível enviar o resultado do combate.');
+      });
+      setIsCombatModalOpen(false);
+      setTargetTerritoryId(null);
+      return;
+    }
 
     const defenderPlayer = players.find(p => p.id === territories[targetTerritoryId].ownerId);
 
@@ -693,7 +705,18 @@ export default function App() {
 
     const removeHandler = onlineClient.onGameAction((_, rawAction) => {
       if (!rawAction || typeof rawAction !== 'object') return;
-      const action = rawAction as { type?: string; payload?: { territoryId?: string; cardId?: string; armies?: number } };
+      const action = rawAction as {
+        type?: string;
+        payload?: {
+          territoryId?: string;
+          cardId?: string;
+          armies?: number;
+          attackerRemaining?: number;
+          defenderRemaining?: number;
+          conquered?: boolean;
+          movedArmies?: number;
+        }
+      };
 
       if (action.type === 'select-territory' && action.payload?.territoryId) {
         handleSelectTerritory(action.payload.territoryId, true);
@@ -706,11 +729,24 @@ export default function App() {
         }
       } else if (action.type === 'maneuver' && action.payload?.armies) {
         handleExecuteManeuver(action.payload.armies, true);
+      } else if (
+        action.type === 'resolve-combat'
+        && typeof action.payload?.attackerRemaining === 'number'
+        && typeof action.payload.defenderRemaining === 'number'
+        && typeof action.payload.conquered === 'boolean'
+        && typeof action.payload.movedArmies === 'number'
+      ) {
+        handleResolveCombat({
+          attackerRemaining: action.payload.attackerRemaining,
+          defenderRemaining: action.payload.defenderRemaining,
+          conquered: action.payload.conquered,
+          movedArmies: action.payload.movedArmies
+        }, true);
       }
     });
 
     return removeHandler;
-  }, [onlineClient, onlineRoom, isOnlineHost, activePlayer, handleNextPhase]);
+  }, [onlineClient, onlineRoom, isOnlineHost, activePlayer, handleNextPhase, handleResolveCombat, handleExecuteManeuver]);
 
   // AI Turn Logic Automator
   useEffect(() => {
