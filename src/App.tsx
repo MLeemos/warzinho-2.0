@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { CONTINENTS, TERRITORIES, SEA_ROUTES } from './data/warMapData';
 import { CLASSIC_OBJECTIVES, checkObjectiveProgress } from './data/objectivesData';
-import { DEFAULT_MECHANICS, GLOBAL_EVENTS } from './data/mechanicsData';
+import { DEFAULT_MECHANICS, GLOBAL_EVENTS, TacticalCard } from './data/mechanicsData';
 import { 
   ActiveMechanics, 
   GlobalEvent, 
@@ -25,6 +25,7 @@ import { TacticalCardsModal } from './components/Modals/TacticalCardsModal';
 import { GameLogModal } from './components/Modals/GameLogModal';
 import { VictoryModal } from './components/Modals/VictoryModal';
 import { GameSetup } from './components/Setup/GameSetup';
+import { Plane } from 'lucide-react';
 
 export default function App() {
   // Application Stage
@@ -64,6 +65,12 @@ export default function App() {
 
   // Tactical Action Mode (e.g. Air strike selection)
   const [tacticalTargetMode, setTacticalTargetMode] = useState<'air_strike' | 'fortify' | null>(null);
+  const [airStrikeSetup, setAirStrikeSetup] = useState<{ sourceId: string; armies: number } | null>(null);
+  const [airStrikePlan, setAirStrikePlan] = useState<{
+    sourceId: string;
+    committedArmies: number;
+    combatArmies: number;
+  } | null>(null);
 
   const activePlayer = players[activePlayerIndex] || null;
 
@@ -194,15 +201,12 @@ export default function App() {
     const selState = territories[selectedTerritoryId];
     if (!selTerr || !selState) return [];
 
-    // Tactical air strike mode: can target any enemy territory up to 2 steps away
+    // Tactical air strike mode: the target is selected randomly from the map
     if (tacticalTargetMode === 'air_strike') {
-      const step1 = selTerr.neighbors;
-      const step2 = new Set<string>();
-      step1.forEach(nId => {
-        step2.add(nId);
-        TERRITORIES[nId]?.neighbors.forEach(n2 => step2.add(n2));
-      });
-      return Array.from(step2).filter(tId => territories[tId]?.ownerId !== activePlayer.id);
+      if (selState.ownerId !== activePlayer.id || selState.armies < 20) return [];
+      return (Object.values(territories) as TerritoryState[])
+        .filter(target => target.ownerId !== activePlayer.id)
+        .map(target => target.id);
     }
 
     if (currentPhase === 'attack') {
@@ -244,21 +248,15 @@ export default function App() {
 
     // Tactical target execution
     if (tacticalTargetMode === 'air_strike') {
-      if (validTargets.includes(territoryId)) {
-        // Execute air strike
-        warAudio.playClash();
-        const lost = Math.min(2, Math.max(1, Math.floor(Math.random() * 2) + 1));
-        const updatedArmies = Math.max(1, tState.armies - lost);
-        setTerritories(prev => ({
-          ...prev,
-          [territoryId]: { ...prev[territoryId], armies: updatedArmies }
-        }));
-        addLog(`✈️ Ataque Aéreo em ${TERRITORIES[territoryId].name}! Destruiu ${lost} exércitos inimigos.`, 'mechanic');
-        setTacticalTargetMode(null);
-        setSelectedTerritoryId(null);
-      } else {
-        setTacticalTargetMode(null);
-        setSelectedTerritoryId(null);
+      if (!selectedTerritoryId) {
+        if (tState.ownerId === activePlayer.id && tState.armies >= 20) {
+          warAudio.playCard();
+          setSelectedTerritoryId(territoryId);
+          setAirStrikeSetup({ sourceId: territoryId, armies: 20 });
+          addLog(`✈️ Território de lançamento definido: ${TERRITORIES[territoryId].name}. Escolha o efetivo do ataque.`, 'mechanic');
+        } else {
+          addLog('⚠️ O Ataque Aéreo exige pelo menos 20 tropas no território de lançamento.', 'mechanic');
+        }
       }
       return;
     }
@@ -340,6 +338,10 @@ export default function App() {
 
     const defenderPlayer = players.find(p => p.id === territories[targetTerritoryId].ownerId);
 
+    const isAirStrike = airStrikePlan?.sourceId === selectedTerritoryId;
+    const sourceState = territories[selectedTerritoryId];
+    const committedAirStrikeArmies = airStrikePlan?.committedArmies || 0;
+
     if (result.conquered) {
       setConqueredThisTurn(true);
       addLog(
@@ -352,7 +354,9 @@ export default function App() {
         ...prev,
         [selectedTerritoryId]: {
           ...prev[selectedTerritoryId],
-          armies: result.attackerRemaining
+          armies: isAirStrike
+            ? Math.max(0, sourceState.armies - committedAirStrikeArmies + result.attackerRemaining - result.movedArmies)
+            : result.attackerRemaining
         },
         [targetTerritoryId]: {
           ...prev[targetTerritoryId],
@@ -417,7 +421,9 @@ export default function App() {
         ...prev,
         [selectedTerritoryId]: {
           ...prev[selectedTerritoryId],
-          armies: result.attackerRemaining
+          armies: isAirStrike
+            ? Math.max(0, sourceState.armies - committedAirStrikeArmies + result.attackerRemaining)
+            : result.attackerRemaining
         },
         [targetTerritoryId]: {
           ...prev[targetTerritoryId],
@@ -428,6 +434,11 @@ export default function App() {
 
     setIsCombatModalOpen(false);
     setTargetTerritoryId(null);
+    if (isAirStrike) {
+      setSelectedTerritoryId(null);
+      setAirStrikePlan(null);
+      setAirStrikeSetup(null);
+    }
   };
 
   // Maneuver Execute
@@ -620,26 +631,72 @@ export default function App() {
   }, [inGame, activePlayer, currentPhase, reserveArmies, territories, winnerPlayer, handleNextPhase]);
 
   // Tactical Actions handler
-  const handleUseTacticalAction = (actionType: string) => {
+  const handleUseTacticalAction = (card: TacticalCard) => {
     if (!activePlayer) return;
 
-    if (actionType === 'air_strike') {
+    setPlayers(prev => prev.map(player => (
+      player.id === activePlayer.id
+        ? { ...player, tacticalCards: player.tacticalCards.filter(cardId => cardId !== card.id) }
+        : player
+    )));
+
+    if (card.effect === 'air_strike') {
       setTacticalTargetMode('air_strike');
-      addLog(`✈️ Modo Ataque Aéreo: Selecione um território seu e em seguida o alvo inimigo!`, 'mechanic');
-    } else if (actionType === 'fortify') {
+      addLog(`✈️ ${card.name} utilizada: selecione um território seu com pelo menos 20 tropas.`, 'mechanic');
+    } else if (card.effect === 'fortify') {
       setTacticalTargetMode('fortify');
       addLog(`🛡️ Modo Fortaleza: Clique em um território seu para erguer fortificação (+1 dado de defesa).`, 'mechanic');
-    } else if (actionType === 'spy_objective') {
+    } else if (card.effect === 'spy_objective') {
       setIsObjectiveModalOpen(true);
       addLog(`👁️ Espionagem militar obteve relatórios táticos de inteligência.`, 'mechanic');
-    } else if (actionType === 'emergency_recruits') {
+    } else if (card.effect === 'emergency_recruits') {
       setReserveArmies(prev => prev + 3);
       warAudio.playTroopPlace();
       addLog(`🪖 Conscrição de Emergência! +3 exércitos adicionados à reserva.`, 'mechanic');
-    } else if (actionType === 'blitzkrieg') {
+    } else if (card.effect === 'blitzkrieg') {
       warAudio.playDiceRoll();
       addLog(`⚡ Blitzkrieg ativada! Moral das tropas ofensivas no nível máximo.`, 'mechanic');
     }
+  };
+
+  const confirmAirStrike = () => {
+    if (!airStrikeSetup || !activePlayer) return;
+
+    const source = territories[airStrikeSetup.sourceId];
+    if (!source || source.ownerId !== activePlayer.id) return;
+
+    const committedArmies = Math.min(
+      source.armies,
+      Math.max(20, Math.floor(airStrikeSetup.armies))
+    );
+    const costArmies = Math.floor(committedArmies / 2);
+    const combatArmies = committedArmies - costArmies;
+    const possibleTargets = (Object.values(territories) as TerritoryState[])
+      .filter(target => target.ownerId !== activePlayer.id)
+      .map(target => target.id);
+    const randomTarget = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
+
+    if (!randomTarget) {
+      addLog('⚠️ Nenhum território inimigo disponível para o Ataque Aéreo.', 'mechanic');
+      setAirStrikeSetup(null);
+      setTacticalTargetMode(null);
+      setSelectedTerritoryId(null);
+      return;
+    }
+
+    setAirStrikePlan({
+      sourceId: source.id,
+      committedArmies,
+      combatArmies
+    });
+    setTargetTerritoryId(randomTarget);
+    setAirStrikeSetup(null);
+    setTacticalTargetMode(null);
+    setIsCombatModalOpen(true);
+    addLog(
+      `✈️ Ataque Aéreo: ${committedArmies} tropas comprometidas (${costArmies} de custo). Alvo sorteado: ${TERRITORIES[randomTarget].name}.`,
+      'mechanic'
+    );
   };
 
   // Active player's objective and progress
@@ -681,7 +738,7 @@ export default function App() {
             <div className="w-full bg-amber-600/90 text-slate-950 px-4 py-1.5 text-xs font-black tracking-wider flex items-center justify-between animate-pulse">
               <span>
                 {tacticalTargetMode === 'air_strike'
-                  ? '✈️ MIRA AÉREA ATIVA: Selecione primeiro seu território de lançamento e depois o território inimigo!'
+                  ? '✈️ ATAQUE AÉREO: Selecione um território seu com pelo menos 20 tropas. O alvo inimigo será sorteado!'
                   : '🛡️ CONSTRUIR FORTALEZA: Clique no seu território para fortificar!'}
               </span>
               <button
@@ -729,11 +786,60 @@ export default function App() {
       )}
 
       {/* Combat Modal */}
+      {airStrikeSetup && activePlayer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-sky-500/40 bg-slate-900 p-6 shadow-2xl">
+            <div className="mb-4 flex items-center gap-3">
+              <Plane className="h-6 w-6 text-sky-400" />
+              <div>
+                <h2 className="text-lg font-bold text-slate-100">Ataque Aéreo Estratégico</h2>
+                <p className="text-xs text-slate-400">Escolha quantas tropas serão comprometidas.</p>
+              </div>
+            </div>
+            <label className="block text-xs font-bold uppercase tracking-wide text-slate-400" htmlFor="air-strike-armies">
+              Tropas do ataque
+            </label>
+            <input
+              id="air-strike-armies"
+              type="number"
+              min={20}
+              max={airStrikeSetup.sourceId ? territories[airStrikeSetup.sourceId].armies : 20}
+              value={airStrikeSetup.armies}
+              onChange={event => setAirStrikeSetup(prev => prev ? { ...prev, armies: Number(event.target.value) } : prev)}
+              className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 outline-none focus:border-sky-400"
+            />
+            <p className="mt-2 text-xs text-slate-400">Metade das tropas escolhidas será o custo da operação. O restante participa da batalha.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setAirStrikeSetup(null);
+                  setTacticalTargetMode(null);
+                  setSelectedTerritoryId(null);
+                }}
+                className="rounded-lg px-3 py-2 text-xs font-bold text-slate-400 hover:bg-slate-800 hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmAirStrike}
+                disabled={airStrikeSetup.armies < 20 || airStrikeSetup.armies > territories[airStrikeSetup.sourceId].armies}
+                className="rounded-lg bg-sky-500 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Sortear alvo e atacar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isCombatModalOpen && selectedTerritoryId && targetTerritoryId && (
         <CombatModal
           attackerPlayer={activePlayer}
           defenderPlayer={players.find(p => p.id === territories[targetTerritoryId].ownerId) || players[0]}
-          attackerTerritoryState={territories[selectedTerritoryId]}
+          attackerTerritoryState={airStrikePlan ? {
+            ...territories[selectedTerritoryId],
+            armies: airStrikePlan.combatArmies
+          } : territories[selectedTerritoryId]}
           defenderTerritoryState={territories[targetTerritoryId]}
           activeMechanics={activeMechanics}
           onResolveCombat={handleResolveCombat}

@@ -6,7 +6,7 @@ import { Zap, Plane, Shield, Eye, Users, Handshake, X, Check } from 'lucide-reac
 
 interface TacticalCardsModalProps {
   player: Player;
-  onUseTacticalAction: (actionType: TacticalCard['effect']) => void;
+  onUseTacticalAction: (card: TacticalCard) => void;
   onClose: () => void;
 }
 
@@ -28,7 +28,7 @@ export const TacticalCardsModal: React.FC<TacticalCardsModalProps> = ({
 
   const handleAction = (card: TacticalCard) => {
     warAudio.playCard();
-    onUseTacticalAction(card.effect);
+    onUseTacticalAction(card);
     onClose();
   };
 
@@ -58,7 +58,7 @@ export const TacticalCardsModal: React.FC<TacticalCardsModalProps> = ({
 
         {/* List */}
         <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[70vh] overflow-y-auto">
-          {TACTICAL_CARDS.map((card) => (
+          {TACTICAL_CARDS.filter(card => player.tacticalCards.includes(card.id)).map((card) => (
             <div
               key={card.id}
               className="p-4 rounded-xl border border-slate-800 bg-slate-950 hover:border-slate-700 transition flex flex-col justify-between gap-3 group"
