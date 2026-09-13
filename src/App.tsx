@@ -456,6 +456,19 @@ export default function App() {
   }, fromServer = false) => {
     if (!selectedTerritoryId || !targetTerritoryId || !activePlayer) return;
 
+    const isAirStrike = airStrikePlan?.sourceId === selectedTerritoryId;
+    if (isAirStrike && onlineClient && onlineRoom && result.conquered && !fromServer) {
+      onlineClient.resolveAirStrike(onlineRoom.code, result.movedArmies).catch(error => {
+        setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível concluir o Ataque Aéreo.');
+      });
+      setIsCombatModalOpen(false);
+      setTargetTerritoryId(null);
+      setSelectedTerritoryId(null);
+      setAirStrikePlan(null);
+      setAirStrikeSetup(null);
+      return;
+    }
+
     if (onlineClient && onlineRoom && !isOnlineHost && !fromServer) {
       onlineClient.sendGameAction(onlineRoom.code, {
         type: 'resolve-combat',
@@ -474,7 +487,6 @@ export default function App() {
 
     const defenderPlayer = players.find(p => p.id === territories[targetTerritoryId].ownerId);
 
-    const isAirStrike = airStrikePlan?.sourceId === selectedTerritoryId;
     const sourceState = territories[selectedTerritoryId];
     const committedAirStrikeArmies = airStrikePlan?.committedArmies || 0;
 

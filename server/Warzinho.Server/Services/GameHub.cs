@@ -236,6 +236,61 @@ public sealed class GameHub(RoomStore rooms) : Hub
             session.CombatArmies));
     }
 
+    public async Task<JsonElement> ResolveAirStrike(string roomCode, int movedArmies)
+    {
+        var room = RequireRoom(roomCode);
+        var player = room.Players.GetValueOrDefault(Context.ConnectionId)
+            ?? throw new HubException("Você não está conectado a esta sala.");
+        var tactical = room.ActiveTacticalAction;
+        var combat = room.ActiveCombat;
+
+        if (tactical is null || tactical.CardId != "tac_air_strike"
+            || tactical.PlayerId != player.PlayerId || tactical.SourceId is null || tactical.TargetId is null)
+        {
+            throw new HubException("Nenhum Ataque Aéreo está aguardando resolução.");
+        }
+
+        if (combat is null || combat.PlayerId != player.PlayerId
+            || combat.SourceId != tactical.SourceId || combat.TargetId != tactical.TargetId
+            || !combat.Conquered)
+        {
+            throw new HubException("O Ataque Aéreo ainda não resultou em conquista.");
+        }
+
+        if (movedArmies < 1 || movedArmies >= combat.AttackerRemaining)
+        {
+            throw new HubException("A quantidade de sobreviventes avançada é inválida.");
+        }
+
+        if (!room.GameState.HasValue) throw new HubException("A partida ainda não foi iniciada.");
+        var root = JsonNode.Parse(room.GameState.Value.GetRawText())?.AsObject()
+            ?? throw new HubException("O estado da partida está inválido.");
+        var territories = root["territories"]?.AsObject()
+            ?? throw new HubException("Os territórios não foram encontrados.");
+        var source = territories[tactical.SourceId]?.AsObject();
+        var target = territories[tactical.TargetId]?.AsObject();
+        if (source is null || target is null) throw new HubException("Origem ou alvo não encontrados.");
+
+        var sourceArmies = source["armies"]?.GetValue<int>() ?? 0;
+        var remainingAtSource = sourceArmies - tactical.CommittedArmies + combat.AttackerRemaining - movedArmies;
+        if (remainingAtSource < 0)
+        {
+            throw new HubException("O custo do Ataque Aéreo excede as tropas disponíveis.");
+        }
+
+        source["armies"] = remainingAtSource;
+        target["ownerId"] = player.PlayerId;
+        target["armies"] = movedArmies;
+        target["fortified"] = false;
+        RemoveTacticalCard(root, player.PlayerId, "tac_air_strike");
+
+        room.GameState = JsonSerializer.Deserialize<JsonElement>(root.ToJsonString());
+        room.ActiveCombat = null;
+        room.ActiveTacticalAction = null;
+        await Clients.Group(room.Code).SendAsync("GameStateUpdated", room.GameState.Value);
+        return room.GameState.Value;
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var room = rooms.RemovePlayer(Context.ConnectionId);
