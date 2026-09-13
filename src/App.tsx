@@ -26,6 +26,7 @@ import { GameLogModal } from './components/Modals/GameLogModal';
 import { VictoryModal } from './components/Modals/VictoryModal';
 import { GameSetup } from './components/Setup/GameSetup';
 import { Plane } from 'lucide-react';
+import { GameClient, OnlineRoomSnapshot } from './multiplayer/gameClient';
 
 export default function App() {
   // Application Stage
@@ -62,6 +63,9 @@ export default function App() {
   const [isLogsOpen, setIsLogsOpen] = useState(false);
   const [winnerPlayer, setWinnerPlayer] = useState<Player | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [onlineClient, setOnlineClient] = useState<GameClient | null>(null);
+  const [onlineRoom, setOnlineRoom] = useState<OnlineRoomSnapshot | null>(null);
+  const [onlineStatus, setOnlineStatus] = useState('');
 
   // Tactical Action Mode (e.g. Air strike selection)
   const [tacticalTargetMode, setTacticalTargetMode] = useState<'air_strike' | 'fortify' | null>(null);
@@ -73,6 +77,18 @@ export default function App() {
   } | null>(null);
 
   const activePlayer = players[activePlayerIndex] || null;
+
+  const handleJoinOnlineRoom = async (roomCode: string, playerName: string) => {
+    try {
+      const client = onlineClient || new GameClient();
+      client.onRoomUpdated(setOnlineRoom);
+      await client.joinRoom(roomCode, playerName);
+      setOnlineClient(client);
+      setOnlineStatus('Conectado à sala. A sincronização da partida será ativada na próxima etapa.');
+    } catch (error) {
+      setOnlineStatus(error instanceof Error ? error.message : 'Não foi possível conectar à sala.');
+    }
+  };
 
   // Audio mute toggle
   const toggleAudio = () => {
@@ -717,6 +733,9 @@ export default function App() {
           onStartGame={handleStartGame}
           onOpenObjectivesBuilder={() => setIsObjectivesBuilderOpen(true)}
           onOpenMechanicsEditor={() => setIsMechanicsEditorOpen(true)}
+          onJoinOnlineRoom={handleJoinOnlineRoom}
+          onlineRoom={onlineRoom}
+          onlineStatus={onlineStatus}
           activeMechanics={activeMechanics}
           objectivesDeck={objectivesDeck}
         />

@@ -162,6 +162,7 @@ O servidor C# compilado é a primeira etapa da migração para partidas entre pe
 - Lucide React
 - Motion
 - Canvas Confetti
+- Microsoft SignalR JavaScript Client
 - Google Gemini API
 
 ## Como executar
@@ -188,6 +189,24 @@ npm run lint
 ```
 
 Configure `GEMINI_API_KEY` em `.env.local` usando [.env.example](.env.example) como referência. Arquivos `.env` reais não devem ser enviados ao GitHub.
+
+## Testar a sala online localmente
+
+1. Em um terminal, inicie o servidor C#:
+
+	```powershell
+	& "C:\Program Files\dotnet\dotnet.exe" run --project server/Warzinho.Server
+	```
+
+2. Em outro terminal, inicie o cliente React:
+
+	```bash
+	npm run dev
+	```
+
+3. Abra `http://localhost:3000` em duas janelas ou dispositivos da mesma rede e use o mesmo código de sala.
+
+O cliente já conecta os jogadores ao hub SignalR e exibe a quantidade de participantes na sala. A sincronização autoritativa dos turnos, combates e estado completo da partida será adicionada na próxima etapa.
 
 ## Atualizações recentes
 

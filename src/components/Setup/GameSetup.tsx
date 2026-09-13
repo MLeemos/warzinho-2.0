@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { PLAYER_COLORS } from '../../data/warMapData';
 import { ActiveMechanics, Player, PlayerColor, SecretObjective } from '../../types/war';
-import { Swords, Bot, User, Play, Sparkles, Sliders, Target, Shield, Info } from 'lucide-react';
+import { OnlineRoomSnapshot } from '../../multiplayer/gameClient';
+import { Swords, Bot, User, Play, Sparkles, Sliders, Target, Shield, Info, Wifi, Users } from 'lucide-react';
 
 interface GameSetupProps {
   onStartGame: (players: Player[], mechanics: ActiveMechanics) => void;
   onOpenObjectivesBuilder: () => void;
   onOpenMechanicsEditor: () => void;
+  onJoinOnlineRoom: (roomCode: string, playerName: string) => Promise<void>;
+  onlineRoom: OnlineRoomSnapshot | null;
+  onlineStatus: string;
   activeMechanics: ActiveMechanics;
   objectivesDeck: SecretObjective[];
 }
@@ -15,10 +19,16 @@ export const GameSetup: React.FC<GameSetupProps> = ({
   onStartGame,
   onOpenObjectivesBuilder,
   onOpenMechanicsEditor,
+  onJoinOnlineRoom,
+  onlineRoom,
+  onlineStatus,
   activeMechanics,
   objectivesDeck
 }) => {
   const [numPlayers, setNumPlayers] = useState<number>(4);
+  const [roomCode, setRoomCode] = useState('');
+  const [onlineName, setOnlineName] = useState('');
+  const [isJoiningRoom, setIsJoiningRoom] = useState(false);
   const [playerConfigs, setPlayerConfigs] = useState<Array<{ name: string; color: PlayerColor; isAI: boolean }>>([
     { name: 'Comandante Humano', color: 'red', isAI: false },
     { name: 'General Áquila (IA)', color: 'blue', isAI: true },
@@ -80,6 +90,15 @@ export const GameSetup: React.FC<GameSetupProps> = ({
     onStartGame(assignedPlayers, activeMechanics);
   };
 
+  const handleJoinRoom = async () => {
+    setIsJoiningRoom(true);
+    try {
+      await onJoinOnlineRoom(roomCode, onlineName);
+    } finally {
+      setIsJoiningRoom(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 relative overflow-x-hidden">
       {/* Background World Glow */}
@@ -116,6 +135,45 @@ export const GameSetup: React.FC<GameSetupProps> = ({
             <Sliders className="w-4 h-4 text-sky-400" />
             <span>Oficina de Regras & Novas Mecânicas</span>
           </button>
+        </div>
+
+        <div className="w-full rounded-2xl border border-cyan-500/30 bg-cyan-950/20 p-5 shadow-xl">
+          <div className="flex items-center gap-3">
+            <Wifi className="h-5 w-5 text-cyan-400" />
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-wide text-cyan-200">Partida online</h2>
+              <p className="text-xs text-slate-400">Entre na mesma sala com seus amigos pelo celular ou PC.</p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <input
+              value={onlineName}
+              onChange={event => setOnlineName(event.target.value)}
+              placeholder="Seu nome"
+              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-400"
+            />
+            <input
+              value={roomCode}
+              onChange={event => setRoomCode(event.target.value.toUpperCase())}
+              placeholder="Código da sala"
+              maxLength={12}
+              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs uppercase text-slate-100 outline-none focus:border-cyan-400"
+            />
+            <button
+              onClick={handleJoinRoom}
+              disabled={isJoiningRoom || roomCode.trim().length < 4 || !onlineName.trim()}
+              className="rounded-lg bg-cyan-500 px-4 py-2 text-xs font-black text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isJoiningRoom ? 'Conectando...' : 'Entrar'}
+            </button>
+          </div>
+          {onlineStatus && <p className="mt-3 text-xs text-amber-300">{onlineStatus}</p>}
+          {onlineRoom && (
+            <div className="mt-4 flex items-center gap-2 text-xs text-cyan-200">
+              <Users className="h-4 w-4" />
+              <span>Sala {onlineRoom.code}: {onlineRoom.players.length} jogador(es) conectado(s).</span>
+            </div>
+          )}
         </div>
 
         {/* Setup Card */}
