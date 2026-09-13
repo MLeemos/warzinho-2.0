@@ -1,20 +1,57 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# War 2.0
 
-# Run and deploy your AI Studio app
+War 2.0 é uma experiência digital de estratégia inspirada em jogos de conquista territorial. O projeto reúne mapa de guerra, objetivos, combate, cartas táticas, manobras e ferramentas para configurar e acompanhar uma partida.
 
-This contains everything you need to run your app locally.
+## Recursos
 
-View your app in AI Studio: https://ai.studio/apps/beb11d2a-b9f2-4159-a72c-918e0989fce0
+- Tabuleiro estratégico com territórios e conexões
+- Configuração de jogadores e objetivos
+- Sistema de combate e manobras
+- Cartas táticas
+- Editor de mecânicas e construtor de objetivos
+- Registro de eventos da partida
+- Interface responsiva para desktop
 
-## Run Locally
+## Tecnologias
 
-**Prerequisites:**  Node.js
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- Lucide React
+- Motion
+- Google Gemini API
 
+## Como executar
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+**Pré-requisitos:** Node.js
+
+1. Instale as dependências:
+
+   ```bash
+   npm install
+   ```
+
+2. Configure a chave da API Gemini no arquivo `.env.local` usando [.env.example](.env.example) como referência:
+
+   ```env
+   GEMINI_API_KEY=sua-chave-aqui
+   ```
+
+3. Inicie o servidor de desenvolvimento:
+
+   ```bash
+   npm run dev
+   ```
+
+O aplicativo estará disponível em `http://localhost:3000`.
+
+## Build de produção
+
+```bash
+npm run build
+```
+
+## Repositório
+
+O projeto está publicado como repositório público em [MLeemos/war-2.0](https://github.com/MLeemos/war-2.0). A versão atual dos arquivos está no branch [`local-project-import`](https://github.com/MLeemos/war-2.0/tree/local-project-import).
